@@ -18,12 +18,46 @@ Per-match probabilities come from an ensemble:
 4. **XGBoost + LightGBM + CatBoost** - 28 engineered features (multi-window form, streaks, head-to-head, rest, rolling xG)
 5. **Isotonic-calibrated logistic regression meta-learner** - blends all four base models, optionally including bookmaker odds and WC 2026 squad-strength priors
 
-Test metrics (held-out chronological split):
+Test metrics (held-out chronological split, n=4,334 league matches, n=3,780 internationals).
 
-| Scope | Accuracy | RPS | Notes |
+**Aggregate** — accuracy and Ranked Probability Score (RPS, lower is better):
+
+| Model | Acc | RPS | Bootstrap 95% CI on RPS |
 |---|---|---|---|
-| Leagues | 0.529 (+odds) | **0.198** | vs B365 bookmaker 0.195 (gap explained by lineups/injuries the model can't see) |
-| Internationals | 0.600 | **0.173** | Beats published Bundesliga academic benchmarks (~0.193) |
+| Dixon-Coles alone | 0.490 | 0.212 | [0.207, 0.216] |
+| CatBoost alone | 0.521 | 0.201 | [0.197, 0.205] |
+| Stacked ensemble (no odds) | 0.526 | 0.203 | [0.200, 0.206] |
+| **Stacked + bookmaker odds** | **0.531** | **0.198** | **[0.194, 0.202]** |
+| B365 bookmaker (baseline) | 0.536 | 0.195 | — |
+
+**Honest caveat on the headline**: the bookmaker's RPS (0.195) sits inside the stacked-model's 95% CI [0.194, 0.202]. The two are statistically indistinguishable on this split. Without odds as a feature, CatBoost alone is within noise of the full stacked ensemble, so the stacking layer's marginal contribution is small.
+
+**Per-league RPS (where the variation lives)**:
+
+| Competition | n | RPS |
+|---|---|---|
+| La Liga | 941 | 0.193 |
+| Serie A | 938 | 0.194 |
+| Bundesliga | 765 | 0.197 |
+| Premier League | 935 | 0.199 |
+| Ligue 1 | 755 | 0.208 |
+
+~8% spread between best and worst league. Ligue 1 is genuinely harder to predict than La Liga.
+
+**Internationals by competition**:
+
+| Competition | n | RPS |
+|---|---|---|
+| FIFA WC qualification | 901 | 0.150 |
+| UEFA Euro qualification | 239 | 0.151 |
+| AFCON | 104 | 0.177 |
+| Friendlies | 967 | 0.183 |
+| UEFA Nations League | 243 | 0.191 |
+| **Aggregate internationals** | 3,780 | **0.173** |
+
+Internationals look better than leagues mostly because qualification matches contain a lot of mismatches (mid-tier vs minnow) that any model gets right.
+
+**What this doesn't yet test**: walk-forward retraining across distinct regimes (pre-COVID / COVID / VAR-era / post-pandemic) to check whether the small edge holds when the model has to predict each new era from data preceding it. That's the next robustness check on the roadmap.
 
 ## Data sources
 

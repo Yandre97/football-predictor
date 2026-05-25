@@ -31,7 +31,8 @@ from src.xg_data import merge_xg
 from src.dixon_coles import DixonColes
 from src.elo import EloEngine
 from src.features import FEATURE_COLS, build_features
-from src.metrics import odds_to_probs, print_report, report
+from src.metrics import (bootstrap_rps_ci, odds_to_probs, print_report,
+                         report, rps_by_slice)
 
 # All possible bookmaker prefixes - we'll use whichever are populated per row
 BOOK_PREFIXES = ["b365", "bw", "iw", "ps", "wh", "vc", "lb", "gb", "bs", "sj", "sb"]
@@ -243,6 +244,26 @@ def train_scope(name: str, matches: pd.DataFrame):
         rep = report(y_test, probs, label)
         print_report(rep)
         reports.append(rep)
+
+    # ---- robustness checks: per-league, per-season, bootstrap CI ----
+    print("\nRobustness — per-league RPS (stacked +odds):")
+    if "competition" in test_df.columns:
+        per_league = rps_by_slice(y_test, stack_yes,
+                                  test_df["competition"].astype(str).values, min_n=100)
+        for league, stats in sorted(per_league.items()):
+            print(f"  {league:24}  n={stats['n']:5}  rps={stats['rps']:.4f}")
+    print("Per-year RPS:")
+    years = pd.to_datetime(test_df["date"]).dt.year.values
+    per_year = rps_by_slice(y_test, stack_yes, years, min_n=100)
+    for year, stats in sorted(per_year.items()):
+        print(f"  {year}  n={stats['n']:5}  rps={stats['rps']:.4f}")
+    print("Bootstrap 95% CI on headline RPS:")
+    for label, probs in [("Dixon-Coles", dc_test_probs),
+                         ("CatBoost", cat_test),
+                         ("STACKED no-odds", stack_no),
+                         ("STACKED +odds", stack_yes)]:
+        point, lo, hi = bootstrap_rps_ci(y_test, probs, n_boot=500)
+        print(f"  {label:18}  {point:.4f}  [{lo:.4f}, {hi:.4f}]")
 
     # ---- bookmaker baselines (B365 alone vs multi-book consensus) ----
     bk_b365_report = bk_cons_report = None

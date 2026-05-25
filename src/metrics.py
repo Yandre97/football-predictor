@@ -67,3 +67,35 @@ def report(y_true: np.ndarray, probs: np.ndarray, label: str = "model") -> dict:
 def print_report(rep: dict) -> None:
     print(f"  {rep['label']:14}  acc={rep['acc']:.3f}  logloss={rep['logloss']:.3f}  "
           f"brier={rep['brier']:.3f}  rps={rep['rps']:.4f}")
+
+
+def bootstrap_rps_ci(y_true: np.ndarray, probs: np.ndarray, n_boot: int = 1000,
+                     alpha: float = 0.05, seed: int = 42) -> tuple[float, float, float]:
+    """Return (point_estimate, lower_ci, upper_ci) for RPS via bootstrap resampling.
+    Tells you whether the headline number is stable or just one lucky draw."""
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    samples = np.empty(n_boot)
+    for i in range(n_boot):
+        idx = rng.integers(0, n, n)
+        samples[i] = ranked_probability_score(y_true[idx], probs[idx])
+    point = ranked_probability_score(y_true, probs)
+    lo = float(np.percentile(samples, 100 * alpha / 2))
+    hi = float(np.percentile(samples, 100 * (1 - alpha / 2)))
+    return float(point), lo, hi
+
+
+def rps_by_slice(y_true: np.ndarray, probs: np.ndarray,
+                 slice_labels: np.ndarray, min_n: int = 50) -> dict[str, dict]:
+    """RPS broken down by an arbitrary slice column (e.g. league, season).
+    Returns dict[slice_value -> {'n': N, 'rps': float}]."""
+    out: dict[str, dict] = {}
+    for s in np.unique(slice_labels):
+        mask = slice_labels == s
+        if mask.sum() < min_n:
+            continue
+        out[str(s)] = {
+            "n": int(mask.sum()),
+            "rps": ranked_probability_score(y_true[mask], probs[mask]),
+        }
+    return out
