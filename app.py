@@ -22,14 +22,251 @@ from src.tournament import (
     top_n_by_elo,
 )
 
-st.set_page_config(page_title="Football Score Predictor", layout="wide",
+st.set_page_config(page_title="Football Predictor", layout="wide",
                    page_icon=":soccer:")
+
+# ============================================================================
+# Custom styling - dark theme, custom fonts, hero section, footer
+# ============================================================================
+_CUSTOM_CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+html, body, [class*="css"], .stApp, .stMarkdown, p, label, div {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.stApp {
+    background: radial-gradient(ellipse at top, #131c2e 0%, #0a0e1a 50%) !important;
+}
+
+h1, h2, h3, h4, h5 {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    letter-spacing: -0.02em !important;
+    font-weight: 700 !important;
+}
+
+/* ----- Hero ----- */
+.hero {
+    background: linear-gradient(135deg, #0e2a3f 0%, #0d4d3a 100%);
+    border-radius: 20px;
+    padding: 2.2rem 2.5rem;
+    margin: 0 0 2rem 0;
+    border: 1px solid rgba(16, 185, 129, 0.18);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.3);
+}
+.hero::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, transparent 65%);
+    pointer-events: none;
+}
+.hero::after {
+    content: '';
+    position: absolute;
+    bottom: -50%;
+    left: -10%;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.10) 0%, transparent 65%);
+    pointer-events: none;
+}
+.hero-content { position: relative; z-index: 2; }
+.hero h1 {
+    font-size: 2.6rem !important;
+    font-weight: 800 !important;
+    margin: 0 0 0.4rem 0 !important;
+    background: linear-gradient(95deg, #34d399 0%, #fbbf24 90%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+}
+.hero-subtitle {
+    color: #cbd5e1;
+    font-size: 1.05rem;
+    margin: 0 0 1.1rem 0;
+    max-width: 720px;
+    line-height: 1.5;
+}
+.hero-stats { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.stat-pill {
+    background: rgba(16, 185, 129, 0.10);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    padding: 0.38rem 0.95rem;
+    border-radius: 100px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+.stat-pill.gold {
+    background: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+/* ----- Metric cards ----- */
+[data-testid="stMetric"], [data-testid="metric-container"] {
+    background: rgba(19, 24, 37, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    transition: border-color 0.2s ease;
+}
+[data-testid="stMetric"]:hover, [data-testid="metric-container"]:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+[data-testid="stMetricValue"] {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 1.6rem !important;
+    color: #f8fafc !important;
+}
+[data-testid="stMetricLabel"] {
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ----- Buttons ----- */
+.stButton > button, .stDownloadButton > button {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    transition: all 0.18s ease !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.22);
+    border-color: rgba(16, 185, 129, 0.4) !important;
+}
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border-color: rgba(16, 185, 129, 0.55) !important;
+}
+
+/* ----- Tabs ----- */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 10px 10px 0 0 !important;
+    padding: 0.55rem 1.1rem !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+}
+.stTabs [aria-selected="true"] {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #34d399 !important;
+}
+
+/* ----- Sidebar ----- */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0d121e 0%, #0a0e1a 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+section[data-testid="stSidebar"] h1 {
+    font-size: 1.5rem !important;
+    background: linear-gradient(95deg, #34d399 0%, #fbbf24 90%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ----- DataFrames ----- */
+[data-testid="stDataFrame"] {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ----- Success/warning/info banners ----- */
+[data-testid="stAlert"] {
+    border-radius: 10px !important;
+}
+
+/* ----- Expanders ----- */
+[data-testid="stExpander"] details {
+    background: rgba(19, 24, 37, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 10px !important;
+}
+
+/* ----- Numbers in mono ----- */
+.score-mono {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* ----- Footer ----- */
+.custom-footer {
+    text-align: center;
+    padding: 2.5rem 0 1rem;
+    margin-top: 4rem;
+    color: #64748b;
+    font-size: 0.82rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    line-height: 1.7;
+}
+.custom-footer a { color: #34d399; text-decoration: none; font-weight: 500; }
+.custom-footer a:hover { text-decoration: underline; }
+
+/* ----- Hide default chrome ----- */
+#MainMenu, footer:not(.custom-footer), header[data-testid="stHeader"] {
+    visibility: hidden;
+    height: 0;
+}
+.block-container { padding-top: 1.5rem !important; }
+
+/* ----- Mobile tweaks ----- */
+@media (max-width: 768px) {
+    .hero { padding: 1.5rem 1.3rem; }
+    .hero h1 { font-size: 1.8rem !important; }
+    .hero-subtitle { font-size: 0.95rem; }
+    [data-testid="stMetricValue"] { font-size: 1.3rem !important; }
+}
+</style>
+"""
+st.markdown(_CUSTOM_CSS, unsafe_allow_html=True)
+
+_HERO_HTML = """
+<div class="hero">
+  <div class="hero-content">
+    <h1>Football Predictor</h1>
+    <p class="hero-subtitle">
+      AI-powered match and tournament predictions across the top-5 European
+      leagues and every international team — built on a stacked Elo +
+      Dixon-Coles + gradient-boosted ensemble. Tournament mode covers the
+      <strong style="color:#fbbf24">2026 FIFA World Cup</strong> with the
+      official draw, real fixture dates, and squad-strength priors.
+    </p>
+    <div class="hero-stats">
+      <span class="stat-pill">Stacked ML ensemble</span>
+      <span class="stat-pill">RPS 0.173 internationals</span>
+      <span class="stat-pill">RPS 0.198 leagues</span>
+      <span class="stat-pill gold">WC 2026 ready</span>
+    </div>
+  </div>
+</div>
+"""
+st.markdown(_HERO_HTML, unsafe_allow_html=True)
 
 # ============================================================================
 # Sidebar (shared across tabs)
 # ============================================================================
-st.sidebar.title("Football predictor")
-st.sidebar.caption("Elo + Dixon-Coles + XGBoost ensemble")
+st.sidebar.markdown("# ⚽ Football Predictor")
+st.sidebar.caption("Stacked ML ensemble · daily auto-updated")
 
 available_scopes = []
 for name in ["leagues", "internationals"]:
@@ -680,3 +917,29 @@ with tab_league:
 
 with tab_cup:
     render_tournament()
+
+
+# ============================================================================
+# Footer
+# ============================================================================
+_FOOTER_HTML = """
+<div class="custom-footer">
+  <div>
+    Built with <a href="https://streamlit.io" target="_blank">Streamlit</a> ·
+    Models: Elo + Pi-rating + Dixon-Coles + (XGBoost + LightGBM + CatBoost)
+    ensemble with isotonic-calibrated meta-learner
+  </div>
+  <div>
+    Data: <a href="https://www.football-data.co.uk" target="_blank">football-data.co.uk</a> ·
+    <a href="https://github.com/martj42/international_results" target="_blank">martj42/international_results</a> ·
+    <a href="https://understat.com" target="_blank">Understat</a> ·
+    public bookmakers
+  </div>
+  <div style="margin-top: 0.8rem;">
+    <a href="https://github.com/jdgoated1/football-predictor" target="_blank">
+      ★ View source on GitHub
+    </a>
+  </div>
+</div>
+"""
+st.markdown(_FOOTER_HTML, unsafe_allow_html=True)
