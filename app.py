@@ -168,6 +168,8 @@ h1, h2, h3, h4, h5 {
 .team-hc .hc-pop b { color: #f8fafc; }
 .team-hc .hc-pop .hc-gold { color: #f59e0b; }
 .team-hc:hover .hc-pop { visibility: visible; opacity: 1; }
+.tc { font-weight: 700; letter-spacing: 0.03em; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.92em; }
 
 /* ----- Metric cards ----- */
 [data-testid="stMetric"], [data-testid="metric-container"] {
@@ -938,6 +940,29 @@ def _team_label(team: str, height: int = 12) -> str:
     return f"{img}{name}"
 
 
+def _team_hover_title(team: str) -> str:
+    """Full name + squad rank/odds, for a native hover tooltip on compact codes."""
+    from src.wc26_strength import WC_2026_DATA
+    data = WC_2026_DATA.get(team) or {}
+    bits = []
+    if data.get("rank") is not None:
+        bits.append(f"squad rank #{data['rank']}")
+    if data.get("odds") is not None:
+        bits.append(f"{data['odds']:g} to win outright")
+    suffix = (" — " + " · ".join(bits)) if bits else ""
+    return _html.escape(f"{team}{suffix}")
+
+
+def _team_code_label(team: str, height: int = 14) -> str:
+    """Compact flag + FIFA 3-letter code (e.g. 🇲🇽 MEX) for narrow group/bracket
+    cards where full names would truncate. Full name shows on hover."""
+    from src.flags import flag_img_html, team_code
+    img = flag_img_html(team, height=height)
+    code = _html.escape(team_code(team))
+    return (f'<span class="team-hc" title="{_team_hover_title(team)}">'
+            f'{img}<span class="tc">{code}</span></span>')
+
+
 def _stats_from_fixtures(group_teams: list[str],
                           group_fixtures: list[dict]) -> dict[str, dict]:
     """Recover P/W/D/L/GF/GA from the predicted fixture list for one group."""
@@ -993,7 +1018,7 @@ def _render_group_cards(fixtures: list[dict], standings: list[list[tuple]],
             rows_html.append(
                 f'<tr class="{row_class}">'
                 f'<td class="pos-cell">{pos}</td>'
-                f'<td class="team-cell">{_team_label(team)}</td>'
+                f'<td class="team-cell">{_team_code_label(team)}</td>'
                 f'<td class="num">{s["P"]}</td>'
                 f'<td class="gd-col">{(sd["gd"]):+d}</td>'
                 f'<td class="pts-cell pts-col">{sd["pts"]}</td>'
@@ -1018,9 +1043,9 @@ def _render_group_cards(fixtures: list[dict], standings: list[list[tuple]],
                 f'<a class="fx-link" href="{url}" title="Analyse this match">'
                 f'<div class="fx{" played" if played else ""}">'
                 f'<span class="fx-date">{date_label}</span>'
-                f'<span class="fx-home">{_team_label(f["home"])}</span>'
+                f'<span class="fx-home">{_team_code_label(f["home"])}</span>'
                 f'<span class="fx-score">{sc}</span>'
-                f'<span class="fx-away">{_team_label(f["away"])}</span>'
+                f'<span class="fx-away">{_team_code_label(f["away"])}</span>'
                 f'<span class="fx-go">›</span>'
                 f'</div></a>'
             )
@@ -1087,10 +1112,10 @@ def _render_bracket(rounds: list[list[dict]], champion: str | None) -> None:
                 f'<a class="bm-link" href="{url}" title="Analyse this match">'
                 f'<div class="{" ".join(classes)}">'
                 f'<div class="bm-side {home_class}">'
-                f'<span class="team">{_team_label(m["home"])}</span>'
+                f'<span class="team">{_team_code_label(m["home"])}</span>'
                 f'<span class="gs">{hg}</span></div>'
                 f'<div class="bm-side {away_class}">'
-                f'<span class="team">{_team_label(m["away"])}</span>'
+                f'<span class="team">{_team_code_label(m["away"])}</span>'
                 f'<span class="gs">{ag}</span></div>'
                 f'{meta}'
                 f'</div></a>'

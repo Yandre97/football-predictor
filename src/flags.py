@@ -359,6 +359,45 @@ ISO_SUBDIVISION: dict[str, str] = {
 }
 
 
+# FIFA-style 3-letter codes — used for compact group/bracket tables where the
+# full country name would truncate. Covers every team across the supported
+# tournament draws (real_groups). Unmapped teams fall back to the first 3
+# letters uppercased.
+TEAM_CODES: dict[str, str] = {
+    # WC2026
+    "Mexico": "MEX", "South Korea": "KOR", "South Africa": "RSA", "Czech Republic": "CZE",
+    "Canada": "CAN", "Switzerland": "SUI", "Qatar": "QAT", "Bosnia and Herzegovina": "BIH",
+    "Brazil": "BRA", "Morocco": "MAR", "Scotland": "SCO", "Haiti": "HAI",
+    "United States": "USA", "Paraguay": "PAR", "Australia": "AUS", "Turkey": "TUR",
+    "Germany": "GER", "Ecuador": "ECU", "Ivory Coast": "CIV", "Curaçao": "CUW",
+    "Netherlands": "NED", "Japan": "JPN", "Tunisia": "TUN", "Sweden": "SWE",
+    "Belgium": "BEL", "Iran": "IRN", "Egypt": "EGY", "New Zealand": "NZL",
+    "Spain": "ESP", "Uruguay": "URU", "Saudi Arabia": "KSA", "Cape Verde": "CPV",
+    "France": "FRA", "Senegal": "SEN", "Norway": "NOR", "Iraq": "IRQ",
+    "Argentina": "ARG", "Austria": "AUT", "Algeria": "ALG", "Jordan": "JOR",
+    "Portugal": "POR", "Colombia": "COL", "Uzbekistan": "UZB", "DR Congo": "COD",
+    "England": "ENG", "Croatia": "CRO", "Panama": "PAN", "Ghana": "GHA",
+    # Other tournament teams (WC2022 / Euro 2024 / AFCON / Copa America)
+    "Wales": "WAL", "Poland": "POL", "Denmark": "DEN", "Costa Rica": "CRC",
+    "Serbia": "SRB", "Cameroon": "CMR", "Italy": "ITA", "Hungary": "HUN",
+    "Slovenia": "SVN", "Slovakia": "SVK", "Romania": "ROU", "Ukraine": "UKR",
+    "Georgia": "GEO", "Albania": "ALB", "Nigeria": "NGA", "Equatorial Guinea": "EQG",
+    "Guinea-Bissau": "GNB", "Mozambique": "MOZ", "Guinea": "GUI", "Gambia": "GAM",
+    "Mali": "MLI", "Namibia": "NAM", "Angola": "ANG", "Burkina Faso": "BFA",
+    "Mauritania": "MTN", "Zambia": "ZAM", "Tanzania": "TAN", "Peru": "PER",
+    "Chile": "CHI", "Venezuela": "VEN", "Jamaica": "JAM", "Bolivia": "BOL",
+}
+
+
+def team_code(team: str) -> str:
+    """FIFA-style 3-letter code for a team (e.g. 'Mexico' -> 'MEX').
+    Falls back to the first 3 letters uppercased for unmapped teams."""
+    if team in TEAM_CODES:
+        return TEAM_CODES[team]
+    cleaned = "".join(ch for ch in team if ch.isalpha())
+    return (cleaned[:3] or team[:3]).upper()
+
+
 def flag_code(team: str) -> str | None:
     """Return the flagcdn slug for the team, or None if no real flag is available."""
     if team in ISO_SUBDIVISION:
