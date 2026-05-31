@@ -342,10 +342,10 @@ section[data-testid="stSidebar"] h1 {
 }
 .group-card table.gc-table td.pos-cell { text-align: center; color: #94a3b8; width: 22px;
     font-family: 'JetBrains Mono', monospace; padding-left: 0; padding-right: 2px; }
-.group-card table.gc-table th.num, .group-card table.gc-table td.num { width: 24px; }
+.group-card table.gc-table th.num, .group-card table.gc-table td.num { width: 34px; }
 .group-card table.gc-table th.gfga, .group-card table.gc-table td.gfga { width: 48px; }
-.group-card table.gc-table th.gd-col, .group-card table.gc-table td.gd-col { width: 30px; }
-.group-card table.gc-table th.pts-col, .group-card table.gc-table td.pts-col { width: 30px; }
+.group-card table.gc-table th.gd-col, .group-card table.gc-table td.gd-col { width: 36px; }
+.group-card table.gc-table th.pts-col, .group-card table.gc-table td.pts-col { width: 36px; }
 .group-card table.gc-table td.pts-cell { font-weight: 700; color: #f8fafc;
     font-family: 'JetBrains Mono', monospace; }
 .group-card tr.adv-q td.pos-cell { color: #3b82f6; }
@@ -354,16 +354,23 @@ section[data-testid="stSidebar"] h1 {
 .group-card tr.adv-t td.pos-cell { color: #f59e0b; }
 .group-card tr.adv-t td.pos-cell::before { content: ""; display: inline-block; width: 3px;
     height: 14px; background: #f59e0b; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.group-card .gc-fixtures-label {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #94a3b8; font-weight: 600; margin: 0.2rem 0 0.35rem;
+}
 .group-card .gc-fixtures { font-size: 0.78rem; color: #cbd5e1; }
+.group-card .gc-fixtures .fx-link { text-decoration: none; display: block;
+    border-radius: 7px; transition: background 0.13s ease; }
+.group-card .gc-fixtures .fx-link:hover { background: rgba(37,99,235,0.14); }
 .group-card .gc-fixtures .fx {
     display: flex; align-items: center; gap: 0.35rem;
-    padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.05);
+    padding: 5px 6px; border-bottom: 1px dashed rgba(255,255,255,0.05);
 }
-.group-card .gc-fixtures .fx:last-child { border-bottom: none; }
-.group-card .gc-fixtures .fx .fx-date { flex: 0 0 50px; color: #64748b; font-size: 0.7rem; }
+.group-card .gc-fixtures .fx-link:last-child .fx { border-bottom: none; }
+.group-card .gc-fixtures .fx .fx-date { flex: 0 0 46px; color: #64748b; font-size: 0.68rem; }
 .group-card .gc-fixtures .fx .fx-home,
 .group-card .gc-fixtures .fx .fx-away  {
-    flex: 1 1 0; min-width: 0;
+    flex: 1 1 0; min-width: 0; color: #e2e8f0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .group-card .gc-fixtures .fx .fx-home  { text-align: right; }
@@ -371,10 +378,14 @@ section[data-testid="stSidebar"] h1 {
 .group-card .gc-fixtures .fx .fx-score {
     font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.85rem;
     color: #f8fafc; padding: 1px 8px; min-width: 44px; text-align: center;
-    background: rgba(255,255,255,0.04); border-radius: 5px;
+    background: rgba(255,255,255,0.05); border-radius: 5px;
 }
-.group-card .gc-fixtures .fx.played .fx-score { background: rgba(37,99,235,0.18);
-    color: #3b82f6; }
+.group-card .gc-fixtures .fx.played .fx-score { background: rgba(37,99,235,0.2);
+    color: #60a5fa; }
+.group-card .gc-fixtures .fx .fx-go {
+    flex: 0 0 8px; color: #475569; font-weight: 700; transition: color 0.13s ease;
+}
+.group-card .gc-fixtures .fx-link:hover .fx-go { color: #3b82f6; }
 
 /* ----- Knockout bracket ----- */
 .bracket-wrap {
@@ -985,10 +996,6 @@ def _render_group_cards(fixtures: list[dict], standings: list[list[tuple]],
                 f'<td class="pos-cell">{pos}</td>'
                 f'<td class="team-cell">{_team_label(team)}</td>'
                 f'<td class="num">{s["P"]}</td>'
-                f'<td class="num">{s["W"]}</td>'
-                f'<td class="num">{s["D"]}</td>'
-                f'<td class="num">{s["L"]}</td>'
-                f'<td class="gfga">{s["GF"]}–{s["GA"]}</td>'
                 f'<td class="gd-col">{(sd["gd"]):+d}</td>'
                 f'<td class="pts-cell pts-col">{sd["pts"]}</td>'
                 f'</tr>'
@@ -1007,23 +1014,27 @@ def _render_group_cards(fixtures: list[dict], standings: list[list[tuple]],
             elif "matchday" in f:
                 date_label = f"MD{f['matchday']}"
             sc = f"{f['score'][0]}–{f['score'][1]}"
+            url = _match_url(f["home"], f["away"])
             fx_html.append(
+                f'<a class="fx-link" href="{url}" title="Analyse this match">'
                 f'<div class="fx{" played" if played else ""}">'
                 f'<span class="fx-date">{date_label}</span>'
                 f'<span class="fx-home">{_team_label(f["home"])}</span>'
                 f'<span class="fx-score">{sc}</span>'
                 f'<span class="fx-away">{_team_label(f["away"])}</span>'
-                f'</div>'
+                f'<span class="fx-go">›</span>'
+                f'</div></a>'
             )
         return (
             f'<div class="group-card">'
             f'<div class="gc-header"><span class="gc-letter">GROUP {letter}</span></div>'
             f'<table class="gc-table">'
             f'<thead><tr><th class="pos-cell"></th><th class="team-th">Team</th>'
-            f'<th class="num">P</th><th class="num">W</th><th class="num">D</th>'
-            f'<th class="num">L</th><th class="gfga">GF–GA</th>'
+            f'<th class="num">Pld</th>'
             f'<th class="gd-col">GD</th><th class="pts-col">Pts</th>'
             f'</tr></thead><tbody>{"".join(rows_html)}</tbody></table>'
+            f'<div class="gc-fixtures-label">Predicted results '
+            f'<span style="opacity:0.6">· tap to analyse</span></div>'
             f'<div class="gc-fixtures">{"".join(fx_html)}</div>'
             f'</div>'
         )
@@ -1591,8 +1602,12 @@ def render_tournament():
                             row["A %"] = f"{f['p_away']*100:.0f}%"
                         if f.get("alt_scores"):
                             row["Alt scores"] = f["alt_scores"]
+                        row["Analyse"] = _match_url(f["home"], f["away"])
                         rows.append(row)
-                    st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+                    st.dataframe(
+                        pd.DataFrame(rows), hide_index=True, use_container_width=True,
+                        column_config={"Analyse": st.column_config.LinkColumn(
+                            "Analyse", display_text="🔍", width="small")})
             else:
                 for md in [1, 2, 3]:
                     md_fixtures = [f for f in fixtures if f["matchday"] == md]
