@@ -30,6 +30,8 @@ OG_DEFAULTS = {
     "OG_URL": "https://wcpicks26.app",
     "OG_IMAGE": ("https://raw.githubusercontent.com/jdgoated1/"
                  "football-predictor/main/assets/og-image.png"),
+    "OG_FAVICON": ("https://raw.githubusercontent.com/jdgoated1/"
+                   "football-predictor/main/assets/favicon.png"),
 }
 
 
@@ -83,6 +85,18 @@ def main() -> int:
     if "</head>" not in html:
         print("[inject] no </head>, skipping.", file=sys.stderr)
         return 0
+
+    # Patch the STATIC <title> and favicon. set_page_config only changes these
+    # client-side (via JS), so crawlers and the pre-JS browser tab otherwise see
+    # Streamlit's defaults ("Streamlit" + the Streamlit favicon).
+    title = os.environ.get("OG_TITLE", OG_DEFAULTS["OG_TITLE"])
+    if "<title>Streamlit</title>" in html:
+        html = html.replace("<title>Streamlit</title>", f"<title>{_esc(title)}</title>")
+        print(f"[inject] set static <title> to '{title}'.")
+    favicon = os.environ.get("OG_FAVICON", OG_DEFAULTS["OG_FAVICON"])
+    if 'href="./favicon.png"' in html:
+        html = html.replace('href="./favicon.png"', f'href="{_esc(favicon)}"')
+        print("[inject] pointed static favicon at the WC26 logo.")
 
     additions = ""
     if 'property="og:title"' not in html:
