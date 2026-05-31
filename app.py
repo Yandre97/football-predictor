@@ -416,6 +416,7 @@ section[data-testid="stSidebar"] h1 {
     font-size: 0.8rem;
     box-shadow: 0 1px 6px rgba(0,0,0,0.18);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
 }
 .bracket-match:hover {
     transform: scale(1.03);
@@ -716,8 +717,20 @@ def render_match():
         odds_arg = (oh, od, oa)
 
     pred = bundle.predict(home, away, neutral=neutral, blend=blend, odds=odds_arg)
+    # For two WC2026 teams, blend in the squad-strength prior so this matches the
+    # tournament view exactly (no-op for non-WC teams). Keeps the same game from
+    # showing two different numbers across the app.
+    wc_applied = False
+    if scope == "internationals":
+        from src.wc26_strength import WC_2026_DATA, apply_wc_prior_to_prediction
+        if home in WC_2026_DATA and away in WC_2026_DATA:
+            pred = apply_wc_prior_to_prediction(pred, home, away, blend=0.30)
+            wc_applied = True
     home_disp = fmt_team(home)
     away_disp = fmt_team(away)
+    if wc_applied:
+        st.caption("Blended with the WC2026 squad-strength prior — matches the "
+                   "tournament view. (Both teams are at WC2026.)")
 
     # Show club crests for leagues scope when logos are available
     if scope == "leagues" and has_logos():
@@ -1102,11 +1115,15 @@ def _render_bracket(rounds: list[list[dict]], champion: str | None) -> None:
             classes = ["bracket-match"]
             if played: classes.append("played")
             if pens:   classes.append("pens")
-            meta = ""
+            # Always render a single-line meta so every card is the SAME height —
+            # uneven heights break the bracket's vertical nesting.
+            from src.flags import team_code as _tc
             if pens:
-                meta = f'<div class="bm-meta">ET / pens → {_html.escape(winner)}</div>'
+                meta = f'<div class="bm-meta">pens → {_html.escape(_tc(winner))}</div>'
             elif played:
                 meta = '<div class="bm-meta">✓ played</div>'
+            else:
+                meta = '<div class="bm-meta">&nbsp;</div>'
             url = _match_url(m["home"], m["away"])
             match_html.append(
                 f'<a class="bm-link" href="{url}" title="Analyse this match">'
