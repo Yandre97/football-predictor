@@ -35,20 +35,18 @@ jobs:
 
       - name: Refresh data + retrain models
         run: |
-          # Delete in-progress season caches so we re-fetch latest matches
+          # train.py treats data/processed/*.parquet as a cache and SKIPS re-fetching
+          # when it is present. On a fresh CI checkout data/raw is gone, but the
+          # committed parquet is stale, so train.py would silently retrain on old data
+          # (this is why WC results never appeared). Delete the processed parquet to
+          # force fetch_all() to re-download the latest league + international results
+          # (including in-progress tournaments). Note: glob('*.parquet') is
+          # non-recursive, so data/processed/live/ is left untouched.
           python -c "
           from pathlib import Path
-          import shutil
-          raw = Path('data/raw')
-          if raw.exists():
-              # Wipe only current/next season caches; keep historical
-              for f in raw.glob('*_2526.csv'):
-                  f.unlink()
-              for f in raw.glob('*_2627.csv'):
-                  f.unlink()
-              intl = raw / 'international_results.csv'
-              if intl.exists():
-                  intl.unlink()
+          for f in Path('data/processed').glob('*.parquet'):
+              f.unlink()
+              print('removed stale cache:', f)
           "
           python train.py
 
