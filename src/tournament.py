@@ -257,7 +257,8 @@ def _first_round_pairs(fmt_name: str, n_qualifiers: int) -> list[tuple[int, int]
 
 
 def _simulate_group(bundle, group_teams: list[str], cache, rng,
-                    max_goals: int) -> dict[str, dict]:
+                    max_goals: int, actual_results: dict | None = None) -> dict[str, dict]:
+    actual_results = actual_results or {}
     pts = {t: 0 for t in group_teams}
     gf = {t: 0 for t in group_teams}
     ga = {t: 0 for t in group_teams}
@@ -268,10 +269,14 @@ def _simulate_group(bundle, group_teams: list[str], cache, rng,
             # Only schedule each pair once - pick whichever order is in cache (both are)
             if j < i:
                 continue
-            # Single match (tournament group stage = single fixture, not home/away)
-            p = cache[(h, a)]
-            idx = rng.choice(len(p), p=p)
-            hg, ag = divmod(idx, max_goals + 1)
+            # Lock in the real score if this match has already been played; otherwise sample.
+            _act = _resolve_actual(h, a, actual_results)
+            if _act is not None:
+                hg, ag = _act
+            else:
+                p = cache[(h, a)]
+                idx = rng.choice(len(p), p=p)
+                hg, ag = divmod(idx, max_goals + 1)
             gf[h] += hg; ga[h] += ag
             gf[a] += ag; ga[a] += hg
             if hg > ag:
@@ -293,8 +298,14 @@ def simulate_knockout(bundle: PredictorBundle, fmt: TournamentFormat,
                       teams_by_group: list[list[str]], n_sims: int = 3000,
                       max_goals: int = 7, seed: int | None = None,
                       fmt_name: str | None = None,
-                      wc_blend: float = 0.0) -> pd.DataFrame:
-    """Simulate a group-stage + knockout tournament n_sims times."""
+                      wc_blend: float = 0.0,
+                      actual_results: dict | None = None) -> pd.DataFrame:
+    """Simulate a group-stage + knockout tournament n_sims times.
+
+    If `actual_results` is supplied, already-played group and knockout matches are
+    locked to their real scores so the title odds reflect how the tournament has
+    actually unfolded (only the remaining fixtures are randomised)."""
+    actual_results = actual_results or {}
     if len(teams_by_group) != fmt.n_groups:
         raise ValueError(f"Need {fmt.n_groups} groups, got {len(teams_by_group)}")
     all_teams = sorted({t for g in teams_by_group for t in g})
@@ -332,7 +343,8 @@ def simulate_knockout(bundle: PredictorBundle, fmt: TournamentFormat,
         qualified: list[str] = []
         thirds: list[tuple[str, dict]] = []
         for group in teams_by_group:
-            stats = _simulate_group(bundle, group, cache, rng, max_goals)
+            stats = _simulate_group(bundle, group, cache, rng, max_goals,
+                                    actual_results=actual_results)
             ranked = _rank(stats)
             for t in ranked[:fmt.advance_per_group]:
                 qualified.append(t)
@@ -355,14 +367,20 @@ def simulate_knockout(bundle: PredictorBundle, fmt: TournamentFormat,
             else:
                 pairings = [(survivors[i], survivors[i + 1]) for i in range(0, len(survivors), 2)]
             for (h, a) in pairings:
-                p = cache[(h, a)]
-                idx = rng.choice(len(p), p=p)
-                hg, ag = divmod(idx, max_goals + 1)
+                _act = _resolve_actual(h, a, actual_results)
+                if _act is not None:
+                    hg, ag = _act
+                else:
+                    p = cache[(h, a)]
+                    idx = rng.choice(len(p), p=p)
+                    hg, ag = divmod(idx, max_goals + 1)
                 if hg > ag:
                     winner = h
                 elif hg < ag:
                     winner = a
                 else:
+                    # Real KO data records the ET score but not the shootout; sample the
+                    # winner. (Unplayed KO draws are also resolved this way.)
                     winner = _penalty_winner(bundle, h, a, rng)
                 next_survivors.append(winner)
             survivors = next_survivors
@@ -402,6 +420,20 @@ def best_pick_score(pred: dict) -> tuple[int, int, float]:
             if valid(i, j) and sm[i, j] > best[2]:
                 best = (i, j, float(sm[i, j]))
     return best
+
+
+def _resolve_actual(h: str, a: str,
+                    actual_results: dict) -> tuple[int, int] | None:
+    """Look up a played result for fixture (h, a), tolerating the home/away order
+    being reversed in the source data. Neutral-site WC games are sometimes recorded
+    by the data provider with the nominal home team flipped relative to the published
+    schedule, so we must check both orderings and orient the score to (h, a)."""
+    if (h, a) in actual_results:
+        return actual_results[(h, a)]
+    if (a, h) in actual_results:
+        ag, hg = actual_results[(a, h)]
+        return (hg, ag)
+    return None
 
 
 def get_actual_results(matches_df: pd.DataFrame,
@@ -566,9 +598,10 @@ def predict_group_fixtures(bundle: PredictorBundle,
             md = max(per_team_count.get(h, 0), per_team_count.get(a, 0)) + 1
             per_team_count[h] = per_team_count.get(h, 0) + 1
             per_team_count[a] = per_team_count.get(a, 0) + 1
-            # Use actual result if the match has been played
-            if (h, a) in actual_results:
-                act_h, act_a = actual_results[(h, a)]
+            # Use actual result if the match has been played (either home/away order)
+            _act = _resolve_actual(h, a, actual_results)
+            if _act is not None:
+                act_h, act_a = _act
                 out.append({
                     "date": date,
                     "group_idx": team_to_group[h], "matchday": md,
@@ -610,8 +643,9 @@ def predict_group_fixtures(bundle: PredictorBundle,
     for gi, group in enumerate(groups):
         for md_idx, md_pairs in enumerate(_matchday_pairs(group)):
             for (h, a) in md_pairs:
-                if (h, a) in actual_results:
-                    act_h, act_a = actual_results[(h, a)]
+                _act = _resolve_actual(h, a, actual_results)
+                if _act is not None:
+                    act_h, act_a = _act
                     out.append({
                         "group_idx": gi, "matchday": md_idx + 1,
                         "home": h, "away": a,
@@ -691,15 +725,18 @@ def sample_one_tournament(bundle: PredictorBundle, fmt: TournamentFormat,
                           groups: list[list[str]], seed: int | None = None,
                           max_goals: int = 7,
                           fmt_name: str | None = None,
-                          wc_blend: float = 0.0) -> tuple[list[dict], list[list[tuple[str, dict]]],
+                          wc_blend: float = 0.0,
+                          actual_results: dict | None = None) -> tuple[list[dict], list[list[tuple[str, dict]]],
                                                        list[list[dict]], str | None]:
     """Run ONE random tournament simulation. Returns (group_fixtures, group_standings,
     knockout_rounds, champion). Each call with a new seed gives a different tournament -
     including upsets. If a real schedule is available for `fmt_name`, group fixtures
-    use real dates and the real fixture list."""
+    use real dates and the real fixture list. If `actual_results` is supplied, played
+    matches are locked to their real scores and only unplayed fixtures are randomised."""
     from .real_groups import ALIASES
     from .schedules import get_schedule, ko_date
 
+    actual_results = actual_results or {}
     rng = np.random.default_rng(seed)
     all_teams = sorted({t for g in groups for t in g})
     cache = _precompute(bundle, all_teams, neutral=True, max_goals=max_goals,
@@ -729,9 +766,13 @@ def sample_one_tournament(bundle: PredictorBundle, fmt: TournamentFormat,
             md = max(per_team_count.get(h, 0), per_team_count.get(a, 0)) + 1
             per_team_count[h] = per_team_count.get(h, 0) + 1
             per_team_count[a] = per_team_count.get(a, 0) + 1
-            p = cache[(h, a)]
-            idx = rng.choice(len(p), p=p)
-            hg, ag = divmod(idx, max_goals + 1)
+            _act = _resolve_actual(h, a, actual_results)
+            if _act is not None:
+                hg, ag = _act
+            else:
+                p = cache[(h, a)]
+                idx = rng.choice(len(p), p=p)
+                hg, ag = divmod(idx, max_goals + 1)
             gf[h] += hg; ga[h] += ag
             gf[a] += ag; ga[a] += hg
             if hg > ag:
@@ -743,15 +784,20 @@ def sample_one_tournament(bundle: PredictorBundle, fmt: TournamentFormat,
             group_fixtures.append({
                 "date": date, "group_idx": team_to_group[h], "matchday": md,
                 "home": h, "away": a, "score": (hg, ag),
+                "is_actual": _act is not None,
             })
         group_fixtures.sort(key=lambda x: (x["date"], x["group_idx"]))
     else:
         for gi, group in enumerate(groups):
             for md_idx, md_pairs in enumerate(_matchday_pairs(group)):
                 for (h, a) in md_pairs:
-                    p = cache[(h, a)]
-                    idx = rng.choice(len(p), p=p)
-                    hg, ag = divmod(idx, max_goals + 1)
+                    _act = _resolve_actual(h, a, actual_results)
+                    if _act is not None:
+                        hg, ag = _act
+                    else:
+                        p = cache[(h, a)]
+                        idx = rng.choice(len(p), p=p)
+                        hg, ag = divmod(idx, max_goals + 1)
                     gf[h] += hg; ga[h] += ag
                     gf[a] += ag; ga[a] += hg
                     if hg > ag:
@@ -763,6 +809,7 @@ def sample_one_tournament(bundle: PredictorBundle, fmt: TournamentFormat,
                     group_fixtures.append({
                         "group_idx": gi, "matchday": md_idx + 1,
                         "home": h, "away": a, "score": (hg, ag),
+                        "is_actual": _act is not None,
                     })
 
     for group in groups:
@@ -799,9 +846,13 @@ def sample_one_tournament(bundle: PredictorBundle, fmt: TournamentFormat,
         else:
             pair_iter = [(current[i], current[i + 1]) for i in range(0, len(current), 2)]
         for (h, a) in pair_iter:
-            p = cache[(h, a)]
-            idx = rng.choice(len(p), p=p)
-            hg, ag = divmod(idx, max_goals + 1)
+            _act = _resolve_actual(h, a, actual_results)
+            if _act is not None:
+                hg, ag = _act
+            else:
+                p = cache[(h, a)]
+                idx = rng.choice(len(p), p=p)
+                hg, ag = divmod(idx, max_goals + 1)
             went_to_pens = False
             if hg > ag:
                 winner = h
@@ -813,6 +864,7 @@ def sample_one_tournament(bundle: PredictorBundle, fmt: TournamentFormat,
             entry = {
                 "round": round_name, "home": h, "away": a,
                 "score": (hg, ag), "winner": winner, "pens": went_to_pens,
+                "is_actual": _act is not None,
             }
             if round_date:
                 entry["date"] = round_date
