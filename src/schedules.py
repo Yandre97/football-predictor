@@ -90,6 +90,33 @@ WC_2026_GROUP_FIXTURES: list[tuple[str, str, str]] = [
 ]
 
 
+# 2026 World Cup Round of 32 - the REAL published bracket, in bracket-tree order.
+# The winner of fixture i meets the winner of fixture i+1 in the Round of 16, so
+# this list order alone defines the whole knockout tree through to the final
+# (quadrants: 1-4 top-left, 5-8 top-right, 9-12 bottom-left, 13-16 bottom-right).
+# Teams are the real qualifiers (post-alias dataset names). Source: official FIFA
+# bracket via Sky Sports / Fox Sports / Yahoo, fetched 2026-06-29.
+WC_2026_R32: list[tuple[str, str, str]] = [
+    # date, home, away
+    ("2026-06-28", "South Africa", "Canada"),
+    ("2026-06-29", "Brazil", "Japan"),
+    ("2026-06-29", "Germany", "Paraguay"),
+    ("2026-06-29", "Netherlands", "Morocco"),
+    ("2026-06-30", "Ivory Coast", "Norway"),
+    ("2026-06-30", "France", "Sweden"),
+    ("2026-06-30", "Mexico", "Ecuador"),
+    ("2026-07-01", "England", "DR Congo"),
+    ("2026-07-01", "Belgium", "Senegal"),
+    ("2026-07-01", "United States", "Bosnia and Herzegovina"),
+    ("2026-07-02", "Spain", "Austria"),
+    ("2026-07-02", "Portugal", "Croatia"),
+    ("2026-07-02", "Switzerland", "Algeria"),
+    ("2026-07-03", "Australia", "Egypt"),
+    ("2026-07-03", "Argentina", "Cape Verde"),
+    ("2026-07-03", "Colombia", "Ghana"),
+]
+
+
 # Date ranges for each knockout round
 # Round name -> (start, end) inclusive
 WC_2026_KO_RANGES: dict[str, tuple[str, str]] = {
@@ -105,12 +132,32 @@ SCHEDULES: dict[str, dict] = {
     "World Cup 2026 (48 teams)": {
         "group_fixtures": WC_2026_GROUP_FIXTURES,
         "ko_ranges": WC_2026_KO_RANGES,
+        "ko_fixtures": {"Round of 32": WC_2026_R32},
     },
 }
 
 
 def get_schedule(fmt_name: str) -> dict | None:
     return SCHEDULES.get(fmt_name)
+
+
+def knockout_seed_order(fmt_name: str | None) -> list[str] | None:
+    """Return the knockout qualifiers as a flat team list in real bracket-tree
+    order (first-round fixture pairs are consecutive: [h1, a1, h2, a2, ...]).
+
+    When present, the knockout simulators use this directly instead of deriving
+    the qualifier order from group standings, so the bracket shows the real
+    published matchups. Returns None if no fixed bracket is defined."""
+    sched = SCHEDULES.get(fmt_name or "")
+    if not sched:
+        return None
+    r32 = sched.get("ko_fixtures", {}).get("Round of 32")
+    if not r32:
+        return None
+    teams: list[str] = []
+    for _date, home, away in r32:
+        teams.extend([home, away])
+    return teams
 
 
 def ko_date(fmt_name: str, round_name: str) -> str | None:

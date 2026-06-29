@@ -336,25 +336,35 @@ def simulate_knockout(bundle: PredictorBundle, fmt: TournamentFormat,
 
     counts = {t: defaultdict(int) for t in all_teams}
 
+    # If a real published bracket exists (e.g. WC 2026, group stage complete), the
+    # knockout qualifiers are fixed - skip the group simulation and start from the
+    # real Round of 32 each iteration so the title odds reflect the actual draw.
+    from .schedules import knockout_seed_order as _seed_order
+    _seed = _seed_order(fmt_name)
+    use_seed = _seed is not None and set(_seed).issubset(set(all_teams))
+
     for _ in range(n_sims):
         for t in all_teams:
             counts[t]["Group"] += 1
         # --- group stage ---
-        qualified: list[str] = []
-        thirds: list[tuple[str, dict]] = []
-        for group in teams_by_group:
-            stats = _simulate_group(bundle, group, cache, rng, max_goals,
-                                    actual_results=actual_results)
-            ranked = _rank(stats)
-            for t in ranked[:fmt.advance_per_group]:
-                qualified.append(t)
-            if fmt.best_thirds > 0 and len(ranked) > fmt.advance_per_group:
-                third = ranked[fmt.advance_per_group]
-                thirds.append((third, stats[third]))
-        if fmt.best_thirds > 0:
-            thirds.sort(key=lambda kv: (-kv[1]["pts"], -kv[1]["gd"], -kv[1]["gf"]))
-            for t, _s in thirds[:fmt.best_thirds]:
-                qualified.append(t)
+        if use_seed:
+            qualified = list(_seed)
+        else:
+            qualified = []
+            thirds: list[tuple[str, dict]] = []
+            for group in teams_by_group:
+                stats = _simulate_group(bundle, group, cache, rng, max_goals,
+                                        actual_results=actual_results)
+                ranked = _rank(stats)
+                for t in ranked[:fmt.advance_per_group]:
+                    qualified.append(t)
+                if fmt.best_thirds > 0 and len(ranked) > fmt.advance_per_group:
+                    third = ranked[fmt.advance_per_group]
+                    thirds.append((third, stats[third]))
+            if fmt.best_thirds > 0:
+                thirds.sort(key=lambda kv: (-kv[1]["pts"], -kv[1]["gd"], -kv[1]["gf"]))
+                for t, _s in thirds[:fmt.best_thirds]:
+                    qualified.append(t)
         # --- knockout: use real bracket if available, else sequential ---
         survivors = list(qualified)
         first_pairs = _first_round_pairs(fmt_name or fmt.name, len(survivors))
@@ -831,6 +841,12 @@ def sample_one_tournament(bundle: PredictorBundle, fmt: TournamentFormat,
         for t, _ in thirds[:fmt.best_thirds]:
             qualifiers.append(t)
 
+    # Use the real published bracket order when available (see predict_modal_bracket).
+    from .schedules import knockout_seed_order as _seed_order
+    _seed = _seed_order(fmt_name)
+    if _seed is not None and set(_seed).issubset(set(all_teams)):
+        qualifiers = _seed
+
     # --- knockout cascade (real bracket if available, else sequential) ---
     rounds: list[list[dict]] = []
     current = qualifiers
@@ -918,6 +934,14 @@ def predict_modal_bracket(bundle: PredictorBundle, fmt: TournamentFormat,
         thirds.sort(key=lambda kv: (-kv[1]["pts"], -kv[1]["gd"], -kv[1]["gf"]))
         for t, _ in thirds[:fmt.best_thirds]:
             qualifiers.append(t)
+
+    # If a real published bracket exists (e.g. WC 2026), use its exact ordering so
+    # the Round of 32 shows the actual matchups, not a derived one. The fixed seed
+    # is authoritative once the group stage is complete.
+    from .schedules import knockout_seed_order as _seed_order
+    _seed = _seed_order(fmt_name)
+    if _seed is not None and set(_seed).issubset(set(bundle.teams)):
+        qualifiers = _seed
 
     # 3) Knockout cascade (real bracket if available, else sequential)
     from .schedules import ko_date as _ko_date
