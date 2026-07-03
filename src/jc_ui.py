@@ -114,14 +114,7 @@ def render_jc_prediction() -> None:
     st.markdown("## 竞彩预测")
     st.caption("中国体育彩票竞彩足球比赛预测，基于统计模型 + AI 解读")
 
-    # 日期选择 + 刷新
-    col_date, col_btn, _ = st.columns([2, 1, 3])
-    today = datetime.now()
-    default_date = today.strftime("%Y-%m-%d")
-    selected_date = col_date.date_input("比赛日期", today, max_value=today + timedelta(days=7))
-    refresh = col_btn.button("🔄 刷新", use_container_width=True)
-
-    # 从 session_state 获取 bundle
+    # 加载模型（直接从文件加载，不受 WC_ONLY 影响）
     from src.predictor import PredictorBundle
     from pathlib import Path
 
@@ -138,23 +131,48 @@ def render_jc_prediction() -> None:
         st.error("没有可用的预测模型，请先训练")
         return
 
-    # 缓存 key
-    cache_key = f"jc_results_{selected_date}"
-    if refresh or cache_key not in st.session_state:
+    # 首次加载：不传日期，获取全部可用比赛
+    all_cache_key = "jc_all_matches"
+    refresh = st.button("🔄 刷新", use_container_width=True)
+
+    if refresh or all_cache_key not in st.session_state:
         with st.spinner("获取竞彩赛程并预测中..."):
             try:
-                date_str = selected_date.strftime("%d%m%y")
-                results = predict_jc_matches(bundle_leagues, bundle_intl, date=date_str)
-                st.session_state[cache_key] = results
+                results = predict_jc_matches(bundle_leagues, bundle_intl, date=None)
+                st.session_state[all_cache_key] = results
             except Exception as e:
                 st.error(f"获取数据失败: {e}")
                 return
 
-    results = st.session_state.get(cache_key, [])
-
-    if not results:
-        st.info("该日期没有竞彩比赛")
+    all_results = st.session_state.get(all_cache_key, [])
+    if not all_results:
+        st.info("暂无竞彩比赛")
         return
+
+    # 提取可用日期
+    from collections import OrderedDict
+    date_options = OrderedDict()
+    for r in all_results:
+        mt = r.get("match_time", "")
+        d = mt.split(" ")[0] if " " in mt else ""
+        if d:
+            date_options[d] = date_options.get(d, 0) + 1
+    if not date_options:
+        date_options[datetime.now().strftime("%Y-%m-%d")] = len(all_results)
+
+    # 日期切换
+    date_list = list(date_options.keys())
+    default_idx = min(1, len(date_list) - 1)  # 默认选第二个(明天的比赛)
+    selected_date_str = st.selectbox(
+        "比赛日期",
+        date_list,
+        index=default_idx if default_idx >= 0 else 0,
+        format_func=lambda d: f"{d} ({date_options[d]}场)",
+    )
+
+    results = [r for r in all_results if r.get("match_time", "").startswith(selected_date_str)]
+    if not results:
+        results = all_results
 
     # 显示统计概览
     total = len(results)
@@ -165,4 +183,3 @@ def render_jc_prediction() -> None:
     # 逐场渲染
     for i, match in enumerate(results):
         _render_match_card(match, i)
-        st.divider() if i < len(results) - 1 else None
