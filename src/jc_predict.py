@@ -139,7 +139,7 @@ def predict_jc_matches(
             h2h_raw = bundle.last_h2h.get(h2h_key) if hasattr(bundle, "last_h2h") and bundle.last_h2h else None
             h2h_text = ""
             if h2h_raw and h2h_raw.get("n", 0) > 0:
-                h2h_text = f"近{h2h_raw['n']}次交锋，主队{h2h_raw['pts_first']}分 vs 客队{h2h_raw['pts_second']}分，净胜球{h2h_raw['gd_first']:+d}"
+                h2h_text = f"近{h2h_raw['n']}次交锋，主队{h2h_raw['pts_first']}分 vs 客队{h2h_raw['pts_second']}分，净胜球{int(h2h_raw['gd_first']):+d}"
 
             match_info["llm"] = interpret_match(
                 home=home_en,
