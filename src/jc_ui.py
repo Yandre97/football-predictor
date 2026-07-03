@@ -171,11 +171,11 @@ def render_jc_prediction() -> None:
         st.error("没有可用的预测模型，请先训练")
         return
 
-    # DeepSeek API key 配置
-    api_key = os.environ.get("DEEPSEEK_API_KEY") or st.session_state.get("jc_api_key", "")
+    # LLM API key 配置
+    api_key = os.environ.get("LLM_API_KEY") or st.session_state.get("jc_api_key", "")
     if not api_key:
-        api_key = st.text_input("DeepSeek API Key", type="password",
-                                 help="输入你的 DeepSeek API key 开启 AI 解读")
+        api_key = st.text_input("LLM API Key", type="password",
+                                 help="输入 API key 开启 AI 投注建议解读")
         if api_key:
             st.session_state["jc_api_key"] = api_key
             st.rerun()

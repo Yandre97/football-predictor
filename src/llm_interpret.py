@@ -1,4 +1,4 @@
-"""llm_interpret.py — DeepSeek API 调用，生成投注建议解读"""
+"""llm_interpret.py — LLM API 调用，生成投注建议解读（Anthropic 格式）"""
 
 from __future__ import annotations
 
@@ -7,8 +7,9 @@ import os
 
 import httpx
 
-DEEPSEEK_API = "https://api.deepseek.com/v1/chat/completions"
-DEEPSEEK_MODEL = "deepseek-v4-pro"
+LLM_API = "https://uuapi.net/v1/messages"
+LLM_MODEL = "claude-sonnet-4-6"
+LLM_API_KEY_ENV = "LLM_API_KEY"
 
 _SYSTEM_PROMPT = """你是一个中国体育彩票竞彩足球的投注分析助手。
 你的职责是根据统计模型的预测结果和竞彩赔率，为每种竞彩玩法给出具体的投注建议。
@@ -96,8 +97,8 @@ def interpret_match(
     handicap_info: str = "无",
     api_key: str | None = None,
 ) -> dict | None:
-    """调用 DeepSeek API 生成比赛解读。"""
-    key = api_key or os.environ.get("DEEPSEEK_API_KEY")
+    """调用 LLM API (Anthropic 格式) 生成比赛解读。"""
+    key = api_key or os.environ.get(LLM_API_KEY_ENV)
     if not key:
         return None
 
@@ -139,21 +140,26 @@ def interpret_match(
 
     try:
         resp = httpx.post(
-            DEEPSEEK_API,
+            LLM_API,
             json={
-                "model": DEEPSEEK_MODEL,
+                "model": LLM_MODEL,
+                "max_tokens": 1024,
+                "system": _SYSTEM_PROMPT,
                 "messages": [
-                    {"role": "system", "content": _SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.3,
-                "max_tokens": 1024,
             },
-            headers={"Authorization": f"Bearer {key}"},
-            timeout=30,
+            headers={
+                "x-api-key": key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            timeout=60,
         )
         resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
+        body = resp.json()
+        content = body["content"][0]["text"]
         content = content.strip()
         if content.startswith("```"):
             content = content.split("\n", 1)[-1]

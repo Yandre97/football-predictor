@@ -33,14 +33,14 @@ def predict_jc_matches(
         bundle_leagues: 联赛模型 PredictorBundle
         bundle_intl: 国家队模型 PredictorBundle
         date: 日期 DDMMYY，默认当天
-        api_key: DeepSeek API key
+        api_key: LLM API key (Anthropic 格式)
 
     Returns:
         包含每场比赛完整信息的 dict 列表
     """
     raw_matches = fetch_jc_matches(date)
 
-    key = api_key or os.environ.get("DEEPSEEK_API_KEY")
+    key = api_key or os.environ.get("LLM_API_KEY")
 
     results = []
     for m in raw_matches:
