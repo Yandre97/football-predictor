@@ -301,6 +301,13 @@ section[data-testid="stSidebar"] h1 {
     visibility: hidden;
     height: 0;
 }
+/* Keep the header visible so the sidebar toggle button remains accessible,
+   but shrink it so it doesn't eat vertical space. */
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    height: 2rem !important;
+    min-height: 2rem !important;
+}
 .block-container { padding-top: 1.5rem !important; }
 
 /* ----- Group stage cards ----- */
