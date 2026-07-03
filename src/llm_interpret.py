@@ -8,6 +8,7 @@ import os
 import httpx
 
 DEEPSEEK_API = "https://api.deepseek.com/v1/chat/completions"
+DEEPSEEK_MODEL = "deepseek-v4-pro"
 
 _SYSTEM_PROMPT = """你是一个中国体育彩票竞彩足球的投注分析助手。
 你的职责是根据统计模型的预测结果和竞彩赔率，为每种竞彩玩法给出具体的投注建议。
@@ -140,7 +141,7 @@ def interpret_match(
         resp = httpx.post(
             DEEPSEEK_API,
             json={
-                "model": "deepseek-chat",
+                "model": DEEPSEEK_MODEL,
                 "messages": [
                     {"role": "system", "content": _SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
