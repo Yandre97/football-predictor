@@ -25,6 +25,7 @@ def predict_jc_matches(
     bundle_intl,
     date: str | None = None,
     api_key: str | None = None,
+    enable_llm: bool = True,
 ) -> list[dict[str, Any]]:
     """获取竞彩赛程并逐场预测。
 
@@ -118,8 +119,10 @@ def predict_jc_matches(
         match_info["scope"] = scope
         match_info["odds_boosted"] = odds_tuple is not None
 
-        # LLM 解读（同步模式，逐场调用）
-        if key and analysis:
+        # LLM 解读
+        hhad = match_info.get("jc_hhad")
+        handicap_info = f"让球{hhad['goal_line']}球  主胜{hhad['home_odds']} / 平{hhad['draw_odds']} / 客胜{hhad['away_odds']}" if hhad else "无"
+        if enable_llm and api_key and analysis:
             match_info["llm"] = interpret_match(
                 home=home_en,
                 away=away_en,
@@ -128,7 +131,8 @@ def predict_jc_matches(
                 model_pred=pred_boosted,
                 analysis=analysis,
                 injuries_text="",
-                api_key=key,
+                handicap_info=handicap_info,
+                api_key=api_key,
             )
 
         results.append(match_info)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -91,22 +92,20 @@ def _render_match_card(match: dict, idx: int) -> None:
 
         # LLM 解读（可折叠）
         llm_result = match.get("llm")
-        cache_key = f"jc_llm_{idx}"
         if llm_result:
-            with st.expander("🤖 AI 解读", expanded=False):
-                cols = st.columns(5)
+            with st.expander("🤖 AI 投注建议", expanded=True):
                 confidence = llm_result.get("信心评级", "-")
                 conf_color = {"高": "#00c853", "中": "#ff9100", "低": "#ff5252"}.get(confidence, "#94a3b8")
-                cols[0].metric("信心", confidence, border=False)
-                cols[1].metric("比分建议", llm_result.get("比分建议", "-")[:6], border=False)
-
-                st.markdown(f"**胜平负分析**：{llm_result.get('胜平负分析', '-')}")
-                st.markdown(f"**风险提示**：{llm_result.get('风险提示', '-')}")
-                if llm_result.get("信心理由"):
-                    st.caption(f"理由：{llm_result['信心理由']}")
-        elif analysis:
-            # 仅在需要时才渲染按钮，但不需要每次都显示
-            pass
+                st.markdown(
+                    f"<span style='font-size:1.1rem;font-weight:700;color:{conf_color}'>"
+                    f"推荐：{llm_result.get('投注建议', '-')}</span>"
+                    f"<span style='margin-left:1rem;font-size:0.9rem;color:#94a3b8'>"
+                    f"信心 {confidence}</span>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(f"**让球建议**：{llm_result.get('让球建议', '-')}")
+                st.markdown(f"**比分参考**：{llm_result.get('比分参考', '-')}")
+                st.markdown(f"**分析**：{llm_result.get('分析', '-')}")
 
 
 def render_jc_prediction() -> None:
@@ -136,6 +135,15 @@ def render_jc_prediction() -> None:
         st.error("没有可用的预测模型，请先训练")
         return
 
+    # DeepSeek API key 配置
+    api_key = os.environ.get("DEEPSEEK_API_KEY") or st.session_state.get("jc_api_key", "")
+    if not api_key:
+        api_key = st.text_input("DeepSeek API Key", type="password",
+                                 help="输入你的 DeepSeek API key 开启 AI 解读")
+        if api_key:
+            st.session_state["jc_api_key"] = api_key
+            st.rerun()
+
     # 首次加载：不传日期，获取全部可用比赛
     all_cache_key = "jc_all_matches"
     refresh = st.button("🔄 刷新", use_container_width=True)
@@ -143,7 +151,10 @@ def render_jc_prediction() -> None:
     if refresh or all_cache_key not in st.session_state:
         with st.spinner("获取竞彩赛程并预测中..."):
             try:
-                results = predict_jc_matches(bundle_leagues, bundle_intl, date=None)
+                results = predict_jc_matches(
+                    bundle_leagues, bundle_intl, date=None,
+                    api_key=api_key or None, enable_llm=bool(api_key),
+                )
                 st.session_state[all_cache_key] = results
             except Exception as e:
                 st.error(f"获取数据失败: {e}")
@@ -167,11 +178,10 @@ def render_jc_prediction() -> None:
 
     # 日期切换
     date_list = list(date_options.keys())
-    default_idx = 0  # 默认选最早可用的比赛日期
     selected_date_str = st.selectbox(
         "比赛日期",
         date_list,
-        index=default_idx if default_idx >= 0 else 0,
+        index=0,
         format_func=lambda d: f"{d} ({date_options[d]}场)",
     )
 

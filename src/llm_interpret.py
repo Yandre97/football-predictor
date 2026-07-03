@@ -11,10 +11,11 @@ import httpx
 DEEPSEEK_API = "https://api.deepseek.com/v1/chat/completions"
 
 _SYSTEM_PROMPT = """你是一个专业的足球预测解读助手。
-你的职责是解读统计模型的预测结果，而不是自己做预测。
-你的输出必须是结构化的 JSON，不要包含任何其他文字。"""
+你的职责是解读统计模型的预测结果和竞彩赔率，给出投注参考建议。
+解读要简洁、实用，适合竞彩玩家阅读。
+你的输出必须是结构化 JSON，不要包含任何其他文字。"""
 
-_USER_PROMPT_TEMPLATE = """分析以下比赛，给出投注建议解读。
+_USER_PROMPT_TEMPLATE = """分析以下竞彩比赛，给出投注建议。
 
 【基本信息】
 比赛：{home} vs {away}
@@ -28,29 +29,27 @@ _USER_PROMPT_TEMPLATE = """分析以下比赛，给出投注建议解读。
 预测比分：{pred_score}
 预期进球：{xg_home:.2f} - {xg_away:.2f}
 
-【竞彩赔率（不含让球）】
-主胜赔率：{jc_h_odds}
-平局赔率：{jc_d_odds}
-客胜赔率：{jc_a_odds}
-竞彩去水主胜概率：{jc_h_prob:.1f}%
-竞彩去水平局概率：{jc_d_prob:.1f}%
-竞彩去水客胜概率：{jc_a_prob:.1f}%
+【竞彩胜平负赔率】
+主胜 {jc_h_odds} | 平 {jc_d_odds} | 客胜 {jc_a_odds}
+去水概率：主 {jc_h_prob:.1f}% / 平 {jc_d_prob:.1f}% / 客 {jc_a_prob:.1f}%
+
+【让球胜平负】{hadicap_info}
 
 【模型 vs 赔率对比】
-主胜价值差：{value_h:+.1f}% {"（模型看高）" if value_h > 0 else "（市场看高）"}
-平局价值差：{value_d:+.1f}% {"（模型看高）" if value_d > 0 else "（市场看高）"}
-客胜价值差：{value_a:+.1f}% {"（模型看高）" if value_a > 0 else "（市场看高）"}
+主胜：模型 {h_prob:.1f}% vs 市场 {jc_h_prob:.1f}%（价值差 {value_h:+.1f}%）
+平局：模型 {d_prob:.1f}% vs 市场 {jc_d_prob:.1f}%（价值差 {value_d:+.1f}%）
+客胜：模型 {a_prob:.1f}% vs 市场 {jc_a_prob:.1f}%（价值差 {value_a:+.1f}%）
 
 【伤停信息】
 {injuries}
 
-请按以下 JSON 格式输出，不要包含任何其他内容：
+请按以下 JSON 格式输出：
 {{
-  "胜平负分析": "分析模型概率与赔率隐含概率的差异，指出是否存在价值投注机会",
-  "比分建议": "对预测比分的合理性做简短评价",
+  "投注建议": "推荐方向，如'主胜'/'平局'/'客胜'/'观望'，并简短说明",
+  "让球建议": "如果让球盘有价值，给出让球方向建议",
+  "比分参考": "模型最看好的比分，以及是否有其他值得关注的比分",
   "信心评级": "高/中/低",
-  "信心理由": "一句话说明信心评级的依据",
-  "风险提示": "风险提示"
+  "分析": "用一两句话解释推荐理由"
 }}"""
 
 
@@ -62,6 +61,7 @@ def interpret_match(
     model_pred: dict,
     analysis: dict,
     injuries_text: str = "无已知伤停",
+    handicap_info: str = "无",
     api_key: str | None = None,
 ) -> dict | None:
     """调用 DeepSeek API 生成比赛解读。
@@ -73,6 +73,7 @@ def interpret_match(
         model_pred: bundle.predict() 的输出
         analysis: compare_odds() 的输出
         injuries_text: 伤停文本
+        handicap_info: 让球信息
         api_key: DeepSeek API key，不传则从环境变量读取
 
     Returns:
@@ -113,6 +114,7 @@ def interpret_match(
         value_d=value_d,
         value_a=value_a,
         injuries=injuries_text or "无已知伤停",
+        hadicap_info=handicap_info,
     )
 
     try:
