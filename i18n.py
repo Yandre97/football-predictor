@@ -324,8 +324,8 @@ _TRANSLATIONS: dict[str, str] = {
     "For every match it gives the score most likely to win "
     "you points, set to whatever rules your contest uses. Built on a calibrated "
     "statistical model (Dixon-Coles, Pi-rating, machine learning). The whole "
-    "tournament is free to use this World Cup.": "为你的 <strong style=\"color:#f59e0b\">2026 世界杯</strong>"
-    "办公室竞猜免费提供预测。每场比赛按你的竞猜规则自动给出最可能得分、"
+    "tournament is free to use this World Cup.": "为你的 <strong style=\"color:#f59e0b\">2026 世界杯同事竞猜</strong>"
+    "免费提供预测。每场比赛按你的竞猜规则自动给出最可能得分，"
     "基于校准的统计模型（Dixon-Coles、Pi-rating、机器学习）。"
     "本届世界杯期间全部免费使用。",
     "World Cup": "世界杯",
@@ -336,7 +336,9 @@ _TRANSLATIONS: dict[str, str] = {
     "Calibrated model": "校准模型",
     "Bookmaker-level accuracy": "博彩级精度",
     "Free this World Cup": "本届世界杯免费",
-}
+    "Free for the 2026 World Cup.": "2026 世界杯免费开放。",
+    "Every match, the full knockout bracket, and the simulator, no payment needed.": "所有比赛、完整淘汰赛对阵图和模拟器，无需付费。",
+    "Like it? Support the project": "喜欢？支持项目",
 
 # Translations that are HTML-heavy or non-trivial to key-match — handled
 # as raw function replacements in app.py
@@ -431,6 +433,52 @@ TEAM_NAMES_CN: dict[str, str] = {
     "Greenland": "格陵兰",
     "New Caledonia": "新喀里多尼亚",
     "Tahiti": "塔希提",
+    # Missing teams from flags.py
+    "American Samoa": "美属萨摩亚",
+    "Anguilla": "安圭拉",
+    "Antigua and Barbuda": "安提瓜和巴布达",
+    "Aruba": "阿鲁巴",
+    "Bonaire": "博奈尔",
+    "British Virgin Islands": "英属维尔京群岛",
+    "Cayman Islands": "开曼群岛",
+    "Chagos Islands": "查戈斯群岛",
+    "Cook Islands": "库克群岛",
+    "Dominica": "多米尼克",
+    "Falkland Islands": "福克兰群岛",
+    "French Guiana": "法属圭亚那",
+    "Guadeloupe": "瓜德罗普",
+    "Guam": "关岛",
+    "Guernsey": "根西岛",
+    "Iraqi Kurdistan": "伊拉克库尔德斯坦",
+    "Isle of Man": "马恩岛",
+    "Jersey": "泽西岛",
+    "Kiribati": "基里巴斯",
+    "Malawi": "马拉维",
+    "Marshall Islands": "马绍尔群岛",
+    "Martinique": "马提尼克",
+    "Mauritius": "毛里求斯",
+    "Mayotte": "马约特",
+    "Micronesia": "密克罗尼西亚",
+    "Montserrat": "蒙特塞拉特",
+    "Nauru": "瑙鲁",
+    "Niue": "纽埃",
+    "Northern Cyprus": "北塞浦路斯",
+    "Northern Mariana Islands": "北马里亚纳群岛",
+    "Quebec": "魁北克",
+    "Réunion": "留尼汪",
+    "Saint Barthélemy": "圣巴泰勒米",
+    "Saint Helena": "圣赫勒拿",
+    "Saint Kitts and Nevis": "圣基茨和尼维斯",
+    "Saint Martin": "圣马丁",
+    "Saint Pierre and Miquelon": "圣皮埃尔和密克隆",
+    "Saint Vincent and the Grenadines": "圣文森特和格林纳丁斯",
+    "Seychelles": "塞舌尔",
+    "Sint Maarten": "荷属圣马丁",
+    "Turks and Caicos Islands": "特克斯和凯科斯群岛",
+    "United States Virgin Islands": "美属维尔京群岛",
+    "Western Sahara": "西撒哈拉",
+    "Zanzibar": "桑给巴尔",
+    "Western Armenia": "西亚美尼亚",
 }
 
 

@@ -769,15 +769,14 @@ def _render_free_banner() -> None:
     if support and support != "#":
         support_html = (
             f' &nbsp;·&nbsp; <a href="{support}" target="_blank" '
-            f'style="color:#f59e0b; text-decoration:none;">Like it? Support the project</a>')
+            f'style="color:#f59e0b; text-decoration:none;">{_("Like it? Support the project")}</a>')
     st.markdown(
         f"""
         <div style="background:linear-gradient(135deg,#11224a 0%,#1a2030 100%);
                     border:1px solid rgba(245,158,11,0.35); border-radius:14px;
                     padding:0.9rem 1.2rem; margin-bottom:1rem; text-align:center;">
-          <span style="color:#f59e0b; font-weight:700;">Free for the 2026 World Cup.</span>
-          <span style="color:#cbd5e1;"> Every match, the full knockout bracket, and the
-          simulator, no payment needed.</span>{support_html}
+          <span style="color:#f59e0b; font-weight:700;">{_("Free for the 2026 World Cup.")}</span>
+          <span style="color:#cbd5e1;"> {_("Every match, the full knockout bracket, and the simulator, no payment needed.")}</span>{support_html}
         </div>
         """,
         unsafe_allow_html=True,
