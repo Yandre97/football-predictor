@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pandas as pd
 import plotly.express as px
@@ -182,6 +182,7 @@ def render_jc_prediction() -> None:
 
     # 首次加载：不传日期，获取全部可用比赛
     all_cache_key = "jc_all_matches"
+    cache_time_key = "jc_cache_time"
     refresh = st.button("🔄 刷新", use_container_width=True)
 
     if refresh or all_cache_key not in st.session_state:
@@ -192,6 +193,7 @@ def render_jc_prediction() -> None:
                     api_key=api_key or None, enable_llm=bool(api_key),
                 )
                 st.session_state[all_cache_key] = results
+                st.session_state[cache_time_key] = datetime.now().strftime("%H:%M:%S")
             except Exception as e:
                 st.error(f"获取数据失败: {e}")
                 return
@@ -229,7 +231,8 @@ def render_jc_prediction() -> None:
     total = len(results)
     matched = sum(1 for r in results if r.get("matched"))
     unmatched = total - matched
-    st.caption(f"共 {total} 场比赛，{matched} 场可预测，{unmatched} 场未匹配")
+    cache_time = st.session_state.get(cache_time_key, "")
+    st.caption(f"共 {total} 场比赛，{matched} 场可预测，{unmatched} 场未匹配　|　预测+解读缓存于 {cache_time}，仅\"🔄 刷新\"重新生成")
 
     # 逐场渲染
     for i, match in enumerate(results):
