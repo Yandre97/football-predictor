@@ -155,12 +155,15 @@ def interpret_match(
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             },
-            timeout=60,
+            timeout=120,
         )
         resp.raise_for_status()
         body = resp.json()
-        content = body["content"][0]["text"]
-        content = content.strip()
+        # Find the text content block (skip thinking blocks)
+        text_blocks = [c for c in body.get("content", []) if c.get("type") == "text"]
+        if not text_blocks:
+            return None
+        content = text_blocks[0]["text"].strip()
         if content.startswith("```"):
             content = content.split("\n", 1)[-1]
             content = content.rsplit("```", 1)[0]
