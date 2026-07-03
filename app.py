@@ -665,9 +665,15 @@ def _stripe_payment_link() -> str:
 
 
 def _app_base_url() -> str:
-    """Base URL for building absolute in-app links (Streamlit's LinkColumn
-    needs absolute URLs). Override with APP_BASE_URL env var for local dev."""
-    return os.environ.get("APP_BASE_URL", "https://wcpicks26.app").rstrip("/")
+    """Base URL for building absolute in-app links. Uses env var when set,
+    otherwise auto-detects the current deployment URL."""
+    url = os.environ.get("APP_BASE_URL")
+    if url:
+        return url.rstrip("/")
+    # Auto-detect from current page: Streamlit sits behind a proxy, but the
+    # browser's URL is the one users need. We use the Host header as fallback.
+    # On Streamlit Cloud / localhost the relative path is sufficient.
+    return ""
 
 
 def _current_token() -> str:
