@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from src.club_logos import logo as club_logo, has_logos
-from src.flags import flagged
+
 from src.predictor import PredictorBundle
 from src.real_groups import REAL_GROUPS, resolve_groups
 from src.tournament import (
@@ -26,7 +26,12 @@ from src.tournament import (
 )
 from src.unlock import verify_token
 import app_api_client as api_client
-from i18n import _
+from i18n import _, team_cn
+from src.flags import flag as _flag_src
+def _flag_cn(t: str) -> str:
+    """Flag emoji + Chinese team name for display. Falls back to English."""
+    f = _flag_src(t)
+    return f"{f} {team_cn(t)}" if f else team_cn(t)
 
 _FAVICON = ROOT / "assets" / "favicon.png"
 st.set_page_config(page_title="WC2026 Picks", layout="wide",
@@ -292,7 +297,7 @@ section[data-testid="stSidebar"] h1 {
 .custom-footer a:hover { text-decoration: underline; }
 
 /* ----- Hide default chrome ----- */
-#MainMenu, footer:not(.custom-footer), header[data-testid="stHeader"] {
+#MainMenu, footer:not(.custom-footer) {
     visibility: hidden;
     height: 0;
 }
@@ -489,23 +494,27 @@ st.markdown(_CUSTOM_CSS, unsafe_allow_html=True)
 _HERO_HTML = """
 <div class="hero">
   <div class="hero-content">
-    <h1>WC2026 Picks</h1>
-    <p class="hero-subtitle">
-      Free predictions for your <strong style="color:#f59e0b">2026 World Cup
-      office pool</strong>. For every match it gives the score most likely to win
-      you points, set to whatever rules your contest uses. Built on a calibrated
-      statistical model (Dixon-Coles, Pi-rating, machine learning). The whole
-      tournament is free to use this World Cup.
-    </p>
+    <h1>{title}</h1>
+    <p class="hero-subtitle">{subtitle}</p>
     <div class="hero-stats">
-      <span class="stat-pill">Calibrated model</span>
-      <span class="stat-pill red">Bookmaker-level accuracy</span>
-      <span class="stat-pill gold">Free this World Cup</span>
+      <span class="stat-pill">{pill_calibrated}</span>
+      <span class="stat-pill red">{pill_accuracy}</span>
+      <span class="stat-pill gold">{pill_free}</span>
     </div>
   </div>
 </div>
 """
-st.markdown(_HERO_HTML, unsafe_allow_html=True)
+st.markdown(_HERO_HTML.format(
+    title=_("WC2026 Picks title"),
+    subtitle=_("Free predictions for your <strong style=\"color:#f59e0b\">2026 World Cup office pool</strong>. "
+               "For every match it gives the score most likely to win "
+               "you points, set to whatever rules your contest uses. Built on a calibrated "
+               "statistical model (Dixon-Coles, Pi-rating, machine learning). The whole "
+               "tournament is free to use this World Cup."),
+    pill_calibrated=_("Calibrated model"),
+    pill_accuracy=_("Bookmaker-level accuracy"),
+    pill_free=_("Free this World Cup"),
+), unsafe_allow_html=True)
 
 # ============================================================================
 # Sidebar (shared across tabs)
@@ -806,7 +815,8 @@ def render_match():
     teams = sorted(bundle.teams)
 
     # Format team names with flag emojis (for internationals; clubs unchanged)
-    fmt_team = (lambda t: flagged(t)) if scope == "internationals" else (lambda t: t)
+    from src.flags import flag as _flag
+    fmt_team = (lambda t: f"{_flag(t)} {team_cn(t)}" if _flag(t) else team_cn(t)) if scope == "internationals" else (lambda t: t)
     # Sensible defaults per scope so the page opens on a recognisable matchup.
     default_home = "England" if scope == "internationals" else "Arsenal"
     default_away_name = "France" if scope == "internationals" else "Liverpool"
@@ -1446,9 +1456,9 @@ def _render_paywall_teaser():
         hg, ag, _, _ = best_ev_score(pred)
         rows.append({
             "Date":   pd.Timestamp(date).strftime("%d %b"),
-            "Home":   flagged(h),
+            "Home":   _flag_cn(h),
             "Pick":   f"{hg}–{ag}",
-            "Away":   flagged(a),
+            "Away":   _flag_cn(a),
             "H %":    f"{pred['outcome']['H']*100:.0f}%",
             "D %":    f"{pred['outcome']['D']*100:.0f}%",
             "A %":    f"{pred['outcome']['A']*100:.0f}%",
@@ -1705,7 +1715,7 @@ def render_tournament():
             col = cols[i % len(cols)]
             with col:
                 st.markdown(_("**Group {}**").format(chr(ord('A') + i)))
-                rows = [{_("Team"): flagged(t), _("Elo"): int(bundle.elo.rating(t))} for t in g]
+                rows = [{_("Team"): _flag_cn(t), _("Elo"): int(bundle.elo.rating(t))} for t in g]
                 st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
 
     # ---- predicted fixtures ----
@@ -1845,9 +1855,9 @@ def render_tournament():
                             score_text += f" ({f['score_prob']*100:.0f}%)"
                         row = {
                             "Group":  chr(ord('A') + f["group_idx"]),
-                            "Home":   flagged(f["home"]),
+                            "Home":   _flag_cn(f["home"]),
                             "Score":  score_text,
-                            "Away":   flagged(f["away"]),
+                            "Away":   _flag_cn(f["away"]),
                         }
                         if "p_home" in f:
                             row["H %"] = f"{f['p_home']*100:.0f}%"
@@ -1871,9 +1881,9 @@ def render_tournament():
                     for f in md_fixtures:
                         row = {
                             "Group":  chr(ord('A') + f["group_idx"]),
-                            "Home":   flagged(f["home"]),
+                            "Home":   _flag_cn(f["home"]),
                             "Score":  f"{f['score'][0]}–{f['score'][1]}",
-                            "Away":   flagged(f["away"]),
+                            "Away":   _flag_cn(f["away"]),
                         }
                         if "p_home" in f:
                             row["H %"] = f"{f['p_home']*100:.0f}%"
@@ -1894,10 +1904,10 @@ def render_tournament():
                     if m.get("pens"):
                         score_text += f" → {m['winner']} (ET/pens)"
                     row = {
-                        "Home":   flagged(m["home"]),
+                        "Home":   _flag_cn(m["home"]),
                         "Score":  score_text,
-                        "Away":   flagged(m["away"]),
-                        "Win":    flagged(m["winner"]),
+                        "Away":   _flag_cn(m["away"]),
+                        "Win":    _flag_cn(m["winner"]),
                     }
                     if "p_home" in m:
                         row["H %"] = f"{m['p_home']*100:.0f}%"
@@ -1924,9 +1934,9 @@ def render_tournament():
                         if "score_prob" in f and f["score_prob"]:
                             score_text += f" ({f['score_prob']*100:.0f}%)"
                         row.update({
-                            "Home":   flagged(f["home"]),
+                            "Home":   _flag_cn(f["home"]),
                             "Score":  score_text,
-                            "Away":   flagged(f["away"]),
+                            "Away":   _flag_cn(f["away"]),
                         })
                         if "p_home" in f:
                             row["H %"] = f"{f['p_home']*100:.0f}%"
@@ -1945,7 +1955,7 @@ def render_tournament():
                         },
                     )
                     st.caption(_("Final standings:"))
-                    srows = [{"Pos": i + 1, "Team": flagged(t), "Pts": s["pts"],
+                    srows = [{"Pos": i + 1, "Team": _flag_cn(t), "Pts": s["pts"],
                               "GD": s["gd"], "GF": s["gf"]}
                              for i, (t, s) in enumerate(standings[gi])]
                     st.dataframe(pd.DataFrame(srows), hide_index=True, use_container_width=True)
