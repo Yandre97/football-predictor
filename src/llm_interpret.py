@@ -33,7 +33,9 @@ xG：{xg_home:.2f} - {xg_away:.2f}
 
 竞彩赔率：主胜 {jc_h_odds} / 平 {jc_d_odds} / 客胜 {jc_a_odds}
 让球{goal_line}：主胜 {hhad_h_odds} / 平 {hhad_d_odds} / 客胜 {hhad_a_odds}
+赔率走势：主胜 {trend_h} / 平 {trend_d} / 客胜 {trend_a}
 
+历史交锋：{h2h}
 伤病信息：{injuries}
 
 请按以下 JSON 格式输出：
@@ -43,6 +45,27 @@ xG：{xg_home:.2f} - {xg_away:.2f}
   "依据": "基于模型概率与赔率的简要分析",
   "风险提示": "本场比赛需要注意的风险因素"
 }}"""
+
+_USER_PROMPT_NO_ODDS = """分析以下比赛，给出投注建议。
+
+比赛：{home} vs {away}
+联赛：{league}
+时间：{match_time}
+
+模型概率：主胜 {h_prob:.0f}% / 平 {d_prob:.0f}% / 客胜 {a_prob:.0f}%
+预测比分：{pred_score}（概率最高）
+xG：{xg_home:.2f} - {xg_away:.2f}
+
+历史交锋：{h2h}
+伤病信息：{injuries}
+
+请按以下 JSON 格式输出：
+{
+  "方向建议": "胜/平/负/观望（选一个最明确的）",
+  "信心评级": "高/中/低",
+  "依据": "基于模型概率的简要分析",
+  "风险提示": "本场比赛需要注意的风险因素"
+}"""
 
 
 def interpret_match(
@@ -54,6 +77,7 @@ def interpret_match(
     analysis: dict,
     injuries_text: str = "无已知伤停",
     handicap_info: dict | None = None,
+    h2h_text: str = "无",
     api_key: str | None = None,
 ) -> dict | None:
     """调用 LLM API (Anthropic 格式) 生成比赛解读。"""
@@ -67,6 +91,7 @@ def interpret_match(
     hg, ag = model_pred["most_likely"]
 
     has_odds = bool(analysis and analysis.get("jc_h_odds"))
+    h2h_text = h2h_text or "无"
     if has_odds:
         gl = handicap_info.get("goal_line", "-") if handicap_info else "-"
         hhad_h = handicap_info.get("home_odds", "-") if handicap_info else "-"
@@ -83,6 +108,10 @@ def interpret_match(
             jc_a_odds=analysis["jc_a_odds"],
             goal_line=gl, hhad_h_odds=hhad_h,
             hhad_d_odds=hhad_d, hhad_a_odds=hhad_a,
+            trend_h=analysis.get("trend_h", "flat"),
+            trend_d=analysis.get("trend_d", "flat"),
+            trend_a=analysis.get("trend_a", "flat"),
+            h2h=h2h_text,
             injuries=injuries_text or "无已知伤停",
         )
     else:
@@ -92,6 +121,7 @@ def interpret_match(
             pred_score=f"{hg}-{ag}",
             xg_home=model_pred.get("lambda_home", 0),
             xg_away=model_pred.get("lambda_away", 0),
+            h2h=h2h_text,
             injuries=injuries_text or "无已知伤停",
         )
 

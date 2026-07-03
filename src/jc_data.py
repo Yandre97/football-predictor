@@ -88,6 +88,9 @@ def extract_had_odds(match: dict) -> dict | None:
         "away_prob": outcomes.get("away", {}).get("noVigProb"),
         "return_rate": had.get("returnRate"),
         "margin": had.get("margin"),
+        "trend_h": outcomes.get("home", {}).get("trend", "flat"),
+        "trend_d": outcomes.get("draw", {}).get("trend", "flat"),
+        "trend_a": outcomes.get("away", {}).get("trend", "flat"),
     }
 
 
@@ -155,6 +158,9 @@ def compare_odds(model_pred: dict, jc_odds: dict | None) -> dict:
         "jc_h_odds": jc_odds["home_odds"],
         "jc_d_odds": jc_odds["draw_odds"],
         "jc_a_odds": jc_odds["away_odds"],
-        "return_rate": jc_odds["return_rate"],
-        "margin": jc_odds["margin"],
+        "return_rate": jc_odds.get("return_rate"),
+        "margin": jc_odds.get("margin"),
+        "trend_h": jc_odds.get("trend_h", "flat"),
+        "trend_d": jc_odds.get("trend_d", "flat"),
+        "trend_a": jc_odds.get("trend_a", "flat"),
     }
