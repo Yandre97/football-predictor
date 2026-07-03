@@ -114,18 +114,23 @@ def render_jc_prediction() -> None:
     st.markdown("## 竞彩预测")
     st.caption("中国体育彩票竞彩足球比赛预测，基于统计模型 + AI 解读")
 
-    # 加载模型（直接从文件加载，不受 WC_ONLY 影响）
+    # 加载模型（缓存到 session_state，避免每次重新读磁盘）
     from src.predictor import PredictorBundle
     from pathlib import Path
 
     ROOT = Path(__file__).resolve().parent.parent
-    bundle_leagues = None
-    bundle_intl = None
-
-    if (ROOT / "models" / "internationals.joblib").exists():
-        bundle_intl = PredictorBundle.load("internationals")
-    if (ROOT / "models" / "leagues.joblib").exists():
-        bundle_leagues = PredictorBundle.load("leagues")
+    if "jc_bundle_intl" not in st.session_state:
+        if (ROOT / "models" / "internationals.joblib").exists():
+            st.session_state["jc_bundle_intl"] = PredictorBundle.load("internationals")
+        else:
+            st.session_state["jc_bundle_intl"] = None
+    if "jc_bundle_leagues" not in st.session_state:
+        if (ROOT / "models" / "leagues.joblib").exists():
+            st.session_state["jc_bundle_leagues"] = PredictorBundle.load("leagues")
+        else:
+            st.session_state["jc_bundle_leagues"] = None
+    bundle_intl = st.session_state["jc_bundle_intl"]
+    bundle_leagues = st.session_state["jc_bundle_leagues"]
 
     if bundle_intl is None and bundle_leagues is None:
         st.error("没有可用的预测模型，请先训练")
