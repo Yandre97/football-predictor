@@ -122,7 +122,7 @@ def predict_jc_matches(
         # LLM 解读
         hhad = match_info.get("jc_hhad")
         handicap_info = f"让球{hhad['goal_line']}球  主胜{hhad['home_odds']} / 平{hhad['draw_odds']} / 客胜{hhad['away_odds']}" if hhad else "无"
-        if enable_llm and api_key and analysis:
+        if enable_llm and api_key:
             match_info["llm"] = interpret_match(
                 home=home_en,
                 away=away_en,
