@@ -28,6 +28,7 @@ from src.unlock import verify_token
 import app_api_client as api_client
 from i18n import _
 from src.flags import flagged
+from src.jc_ui import render_jc_prediction
 
 _FAVICON = ROOT / "assets" / "favicon.png"
 st.set_page_config(page_title="WC2026 Picks", layout="wide",
@@ -796,13 +797,12 @@ def _render_free_banner() -> None:
 # Tabs
 # ============================================================================
 if WC_ONLY:
-    # Only the WC tournament + a national-team match checker. The League/Live
-    # tab is hidden so the leagues ML model never loads (keeps us under 512MB).
-    tab_cup, tab_match = st.tabs([_("World Cup bracket"), _("Quick match check")])
+    tab_cup, tab_match, tab_jc = st.tabs([
+        _("World Cup bracket"), _("Quick match check"), _("竞彩预测")])
     tab_more = None
 else:
-    tab_cup, tab_match, tab_more = st.tabs(
-        [_("World Cup bracket"), _("Quick match check"), _("More")])
+    tab_cup, tab_match, tab_jc, tab_more = st.tabs([
+        _("World Cup bracket"), _("Quick match check"), _("竞彩预测"), _("More")])
 
 
 # ----------------------------------------------------------------------------
@@ -2213,6 +2213,10 @@ with tab_cup:
 
 with tab_match:
     _safe_render(render_match)
+
+if tab_jc is not None:
+    with tab_jc:
+        _safe_render(render_jc_prediction)
 
 if tab_more is not None:
     with tab_more:
