@@ -8,7 +8,7 @@ import os
 import httpx
 
 LLM_API = "https://uuapi.net/v1/messages"
-LLM_MODEL = "claude-sonnet-4-6"
+LLM_MODEL = "claude-fable-5"
 LLM_API_KEY_ENV = "LLM_API_KEY"
 
 _SYSTEM_PROMPT = """你是一个中国体育彩票竞彩足球的投注分析助手。
