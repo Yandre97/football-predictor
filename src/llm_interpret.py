@@ -154,9 +154,20 @@ def interpret_match(
         if not text_blocks:
             return None
         content = text_blocks[0]["text"].strip()
+        # Strip markdown code fences
         if content.startswith("```"):
             content = content.split("\n", 1)[-1]
             content = content.rsplit("```", 1)[0]
-        return json.loads(content.strip())
+            content = content.strip()
+        # Find the first { and last } to handle extra text
+        brace_start = content.find("{")
+        brace_end = content.rfind("}")
+        if brace_start >= 0 and brace_end > brace_start:
+            content = content[brace_start:brace_end+1]
+        import re as _re
+        # Fix common JSON issues: trailing commas before closing brace
+        content = _re.sub(r',\s*}', '}', content)
+        content = _re.sub(r',\s*]', ']', content)
+        return json.loads(content)
     except Exception:
         return None

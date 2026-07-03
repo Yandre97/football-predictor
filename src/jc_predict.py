@@ -134,25 +134,28 @@ def predict_jc_matches(
 
         # LLM 解读
         if enable_llm and key:
-            # H2H
-            h2h_key = tuple(sorted([home_en, away_en]))
-            h2h_raw = bundle.last_h2h.get(h2h_key) if hasattr(bundle, "last_h2h") and bundle.last_h2h else None
-            h2h_text = ""
-            if h2h_raw and h2h_raw.get("n", 0) > 0:
-                h2h_text = f"近{h2h_raw['n']}次交锋，主队{h2h_raw['pts_first']}分 vs 客队{h2h_raw['pts_second']}分，净胜球{int(h2h_raw['gd_first']):+d}"
+            try:
+                # H2H
+                h2h_key = tuple(sorted([home_en, away_en]))
+                h2h_raw = bundle.last_h2h.get(h2h_key) if hasattr(bundle, "last_h2h") and bundle.last_h2h else None
+                h2h_text = ""
+                if h2h_raw and h2h_raw.get("n", 0) > 0:
+                    h2h_text = f"近{h2h_raw['n']}次交锋，主队{h2h_raw['pts_first']}分 vs 客队{h2h_raw['pts_second']}分，净胜球{int(h2h_raw['gd_first']):+d}"
 
-            match_info["llm"] = interpret_match(
-                home=home_en,
-                away=away_en,
-                league=league_cn,
-                match_time=match_info["match_time"],
-                model_pred=pred_boosted,
-                analysis=analysis,
-                injuries_text=injuries_text,
-                handicap_info=match_info.get("jc_hhad"),
-                h2h_text=h2h_text,
-                api_key=api_key,
-            )
+                match_info["llm"] = interpret_match(
+                    home=home_en,
+                    away=away_en,
+                    league=league_cn,
+                    match_time=match_info["match_time"],
+                    model_pred=pred_boosted,
+                    analysis=analysis,
+                    injuries_text=injuries_text,
+                    handicap_info=match_info.get("jc_hhad"),
+                    h2h_text=h2h_text,
+                    api_key=api_key,
+                )
+            except Exception:
+                pass  # LLM interpretation failed, skip
 
         results.append(match_info)
 
