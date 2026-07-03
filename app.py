@@ -774,12 +774,12 @@ def _render_free_banner() -> None:
 # Tabs
 # ============================================================================
 if WC_ONLY:
-    tab_cup, tab_match, tab_jc = st.tabs([
-        _("World Cup bracket"), _("Quick match check"), _("竞彩预测")])
+    tab_jc, tab_match, tab_cup = st.tabs([
+        _("竞彩预测"), _("Quick match check"), _("World Cup bracket")])
     tab_more = None
 else:
-    tab_cup, tab_match, tab_jc, tab_more = st.tabs([
-        _("World Cup bracket"), _("Quick match check"), _("竞彩预测"), _("More")])
+    tab_jc, tab_match, tab_cup, tab_more = st.tabs([
+        _("竞彩预测"), _("Quick match check"), _("World Cup bracket"), _("More")])
 
 
 # ----------------------------------------------------------------------------
@@ -2185,15 +2185,15 @@ def _safe_render(fn) -> None:
         import traceback as _tb
         print(_tb.format_exc())   # still logged server-side for debugging
 
-with tab_cup:
-    _safe_render(render_tournament)
+if tab_jc is not None:
+    with tab_jc:
+        _safe_render(render_jc_prediction)
 
 with tab_match:
     _safe_render(render_match)
 
-if tab_jc is not None:
-    with tab_jc:
-        _safe_render(render_jc_prediction)
+with tab_cup:
+    _safe_render(render_tournament)
 
 if tab_more is not None:
     with tab_more:

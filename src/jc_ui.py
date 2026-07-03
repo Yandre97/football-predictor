@@ -167,7 +167,7 @@ def render_jc_prediction() -> None:
 
     # 日期切换
     date_list = list(date_options.keys())
-    default_idx = min(1, len(date_list) - 1)  # 默认选第二个(明天的比赛)
+    default_idx = 0  # 默认选最早可用的比赛日期
     selected_date_str = st.selectbox(
         "比赛日期",
         date_list,
