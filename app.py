@@ -567,7 +567,7 @@ def get_bundle(name: str) -> PredictorBundle:
 for s in available_scopes:
     p = ROOT / "models" / f"{s}.joblib"
     st.sidebar.caption(_("{} model: ").format(s.title()) +
-                       f"{pd.Timestamp(p.stat().st_mtime, unit='s'):%Y-%m-%d %H:%M}")
+                       f"{pd.Timestamp(p.stat().st_mtime, unit='s', tz='UTC').tz_convert('Asia/Shanghai'):%Y-%m-%d %H:%M}")
 
 # Feedback / feature request section
 with st.sidebar.expander(_("Feedback / feature request")):
