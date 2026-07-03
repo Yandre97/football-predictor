@@ -61,7 +61,6 @@ def predict_jc_matches(
             "status": m.get("status", ""),
             "matched": home_en is not None and away_en is not None,
             "jc_odds": extract_had_odds(m),
-            "jc_hhad": extract_had_odds(m),  # will be replaced
         }
 
         # 让球数据
@@ -80,25 +79,44 @@ def predict_jc_matches(
             results.append(match_info)
             continue
 
-        # 执行预测
+        # 构建赔率元组 (用于 bundle.predict 的 odds 参数)
+        odds_tuple = None
+        jc_had = match_info["jc_odds"]
+        if jc_had and jc_had.get("home_odds"):
+            odds_tuple = (jc_had["home_odds"], jc_had["draw_odds"], jc_had["away_odds"])
+
+        # 执行两次预测：不加赔率 vs 加赔率
         try:
-            pred = bundle.predict(home_en, away_en, neutral=(scope == "internationals"))
+            pred_base = bundle.predict(home_en, away_en, neutral=(scope == "internationals"))
+            pred_boosted = bundle.predict(
+                home_en, away_en, neutral=(scope == "internationals"),
+                odds=odds_tuple,
+            ) if odds_tuple else pred_base
         except Exception:
             results.append(match_info)
             continue
 
-        # 赔率对比
-        analysis = compare_odds(pred, match_info["jc_odds"])
+        # 赔率对比（用 boosted 预测结果 vs 竞彩去水概率）
+        analysis = compare_odds(pred_boosted, jc_had)
+        analysis_base = compare_odds(pred_base, jc_had) if odds_tuple else None
 
         match_info["prediction"] = {
-            "outcome": pred["outcome"],
-            "most_likely": pred["most_likely"],
-            "lambda_home": pred.get("lambda_home", 0),
-            "lambda_away": pred.get("lambda_away", 0),
-            "top_scores": pred.get("top_scores", []),
+            "outcome": pred_boosted["outcome"],
+            "most_likely": pred_boosted["most_likely"],
+            "lambda_home": pred_boosted.get("lambda_home", 0),
+            "lambda_away": pred_boosted.get("lambda_away", 0),
+            "top_scores": pred_boosted.get("top_scores", []),
         }
+        match_info["prediction_base"] = {
+            "outcome": pred_base["outcome"],
+            "most_likely": pred_base["most_likely"],
+            "lambda_home": pred_base.get("lambda_home", 0),
+            "lambda_away": pred_base.get("lambda_away", 0),
+        } if odds_tuple else None
         match_info["analysis"] = analysis
+        match_info["analysis_base"] = analysis_base
         match_info["scope"] = scope
+        match_info["odds_boosted"] = odds_tuple is not None
 
         # LLM 解读（同步模式，逐场调用）
         if key and analysis:
@@ -107,7 +125,7 @@ def predict_jc_matches(
                 away=away_en,
                 league=league_cn,
                 match_time=match_info["match_time"],
-                model_pred=pred,
+                model_pred=pred_boosted,
                 analysis=analysis,
                 injuries_text="",
                 api_key=key,

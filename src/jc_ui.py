@@ -38,10 +38,13 @@ def _render_match_card(match: dict, idx: int) -> None:
             return
 
         # 预测结果 + 赔率对比
+        pred_base = match.get("prediction_base")
+        display_label = "模型预测 (含赔率)" if match.get("odds_boosted") else "模型预测"
+
         col_prob, col_odds = st.columns(2)
 
         with col_prob:
-            st.caption("模型预测")
+            st.caption(display_label)
             outcome = pred["outcome"]
             hg, ag = pred["most_likely"]
             fig = px.bar(
@@ -58,6 +61,12 @@ def _render_match_card(match: dict, idx: int) -> None:
             )
             st.plotly_chart(fig, use_container_width=True)
             st.markdown(f"预测比分：**{hg} - {ag}**　|　预期进球：{pred['lambda_home']:.2f} - {pred['lambda_away']:.2f}")
+
+            # 显示不加赔率的原始预测对比
+            if pred_base:
+                ob = pred_base["outcome"]
+                bhg, bag = pred_base["most_likely"]
+                st.caption(f"不含赔率: {ob['H']*100:.1f}% / {ob['D']*100:.1f}% / {ob['A']*100:.1f}%　比分 {bhg}-{bag}")
 
         with col_odds:
             if analysis:
