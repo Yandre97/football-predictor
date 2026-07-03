@@ -26,6 +26,7 @@ from src.tournament import (
 )
 from src.unlock import verify_token
 import app_api_client as api_client
+from i18n import _
 
 _FAVICON = ROOT / "assets" / "favicon.png"
 st.set_page_config(page_title="WC2026 Picks", layout="wide",
@@ -509,8 +510,8 @@ st.markdown(_HERO_HTML, unsafe_allow_html=True)
 # ============================================================================
 # Sidebar (shared across tabs)
 # ============================================================================
-st.sidebar.markdown("# WC2026 Picks")
-st.sidebar.caption("Calibrated model, refreshed daily")
+st.sidebar.markdown(_("# WC2026 Picks"))
+st.sidebar.caption(_("Calibrated model, refreshed daily"))
 
 # WC_ONLY: the launch product is World-Cup-focused. Loading both the leagues
 # and internationals ML bundles at once blows past Render's 512MB free tier
@@ -539,7 +540,7 @@ if WC_ONLY:
     available_scopes = [s for s in available_scopes if s == "internationals"]
 
 if not available_scopes:
-    st.error("No trained models found. Run `python train.py` first.")
+    st.error(_("No trained models found. Run `python train.py` first."))
     st.stop()
 
 
@@ -556,39 +557,39 @@ def get_bundle(name: str) -> PredictorBundle:
 # Show "model updated" timestamps + the universal update button
 for s in available_scopes:
     p = ROOT / "models" / f"{s}.joblib"
-    st.sidebar.caption(f"{s.title()} model: "
+    st.sidebar.caption(_("{} model: ").format(s.title()) +
                        f"{pd.Timestamp(p.stat().st_mtime, unit='s'):%Y-%m-%d %H:%M}")
 
 # Feedback / feature request section
-with st.sidebar.expander("Feedback / feature request"):
-    st.caption("Spot a bug or have an idea? Drop it here.")
-    fb_type = st.selectbox("Type", ["Feature request", "Bug report", "Other"],
+with st.sidebar.expander(_("Feedback / feature request")):
+    st.caption(_("Spot a bug or have an idea? Drop it here."))
+    fb_type = st.selectbox(_("Type"), [_("Feature request"), _("Bug report"), _("Other")],
                             key="fb_type")
-    fb_title = st.text_input("Short title", key="fb_title",
-                              placeholder="e.g. Add Champions League")
-    fb_desc = st.text_area("Details", key="fb_desc",
-                            placeholder="Describe the issue or idea...")
-    if st.button("Create on GitHub", key="fb_submit", type="secondary"):
+    fb_title = st.text_input(_("Short title"), key="fb_title",
+                              placeholder=_("e.g. Add Champions League"))
+    fb_desc = st.text_area(_("Details"), key="fb_desc",
+                            placeholder=_("Describe the issue or idea..."))
+    if st.button(_("Create on GitHub"), key="fb_submit", type="secondary"):
         if fb_title and fb_desc:
             from urllib.parse import quote
             label_map = {
-                "Feature request": "enhancement",
-                "Bug report": "bug",
-                "Other": "feedback",
+                _("Feature request"): "enhancement",
+                _("Bug report"): "bug",
+                _("Other"): "feedback",
             }
-            prefix = {"Feature request": "[Feature] ", "Bug report": "[Bug] ", "Other": ""}[fb_type]
+            prefix = {_("Feature request"): "[Feature] ", _("Bug report"): "[Bug] ", _("Other"): ""}[fb_type]
             url = (
                 "https://github.com/jdgoated1/football-predictor/issues/new"
                 f"?title={quote(prefix + fb_title)}"
                 f"&body={quote(fb_desc)}"
                 f"&labels={label_map[fb_type]}"
             )
-            st.markdown(f"[**Click here to post on GitHub →**]({url})")
-            st.caption("Pre-fills your text. You'll need a free GitHub account "
-                        "to publish. Or just share the link directly.")
+            st.markdown(f"[**{_('Click here to post on GitHub →')}**]({url})")
+            st.caption(_("Pre-fills your text. You'll need a free GitHub account "
+                        "to publish. Or just share the link directly."))
         else:
-            st.warning("Please fill in both title and details first.")
-    st.caption("Or browse [existing issues](https://github.com/jdgoated1/football-predictor/issues).")
+            st.warning(_("Please fill in both title and details first."))
+    st.caption(_("Or browse [existing issues](https://github.com/jdgoated1/football-predictor/issues)."))
 
 st.sidebar.divider()
 
@@ -597,23 +598,23 @@ st.sidebar.divider()
 # deployments are refreshed by the daily GitHub Action (which retrains and
 # commits new models, triggering an auto-deploy).
 if IS_HOSTED:
-    st.sidebar.caption("Models refresh automatically every day.")
+    st.sidebar.caption(_("Models refresh automatically every day."))
 else:
-    if st.sidebar.button("Update now",
-                         help="Re-download latest match data and retrain (~30 sec)"):
+    if st.sidebar.button(_("Update now"),
+                         help=_("Re-download latest match data and retrain (~30 sec)")):
         progress = st.sidebar.empty()
-        progress.info("Updating... please wait")
+        progress.info(_("Updating... please wait"))
         try:
             result = subprocess.run([sys.executable, "update.py"], cwd=str(ROOT),
                                     capture_output=True, text=True, timeout=300)
             if result.returncode == 0:
-                progress.success("Updated. Reloading...")
+                progress.success(_("Updated. Reloading..."))
                 load_bundle.clear()
                 st.rerun()
             else:
-                progress.error(f"Update failed: {result.stderr[-300:] or result.stdout[-300:]}")
+                progress.error(_("Update failed: {msg}").format(msg=result.stderr[-300:] or result.stdout[-300:]))
         except subprocess.TimeoutExpired:
-            progress.error("Update timed out (>5 min)")
+            progress.error(_("Update timed out (>5 min)"))
 
 st.sidebar.divider()
 
@@ -734,21 +735,21 @@ def _render_email_signup(key_prefix: str) -> None:
     keys unique when the form appears in more than one place."""
     with st.form(f"{key_prefix}_form", clear_on_submit=True):
         fc1, fc2 = st.columns([3, 1])
-        em = fc1.text_input("Email", placeholder="you@email.com",
+        em = fc1.text_input(_("Email"), placeholder=_("you@email.com"),
                             label_visibility="collapsed", key=f"{key_prefix}_email")
-        submitted = fc2.form_submit_button("Email me reminders", use_container_width=True)
+        submitted = fc2.form_submit_button(_("Email me reminders"), use_container_width=True)
         consent = st.checkbox(
-            "Email me a reminder before kickoff and the big matchdays. I've read "
-            "the [Privacy Policy](?page=privacy).", key=f"{key_prefix}_consent")
+            _("Email me a reminder before kickoff and the big matchdays. I've read "
+            "the [Privacy Policy](?page=privacy)."), key=f"{key_prefix}_consent")
         if submitted:
             if not em or "@" not in em or "." not in em:
-                st.warning("Please enter a valid email address.")
+                st.warning(_("Please enter a valid email address."))
             elif not consent:
-                st.warning("Please tick the consent box first.")
+                st.warning(_("Please tick the consent box first."))
             elif _capture_signup(em.strip()):
-                st.success("Done. Check your inbox.")
+                st.success(_("Done. Check your inbox."))
             else:
-                st.success("Thanks. We'll be in touch before kickoff.")
+                st.success(_("Thanks. We'll be in touch before kickoff."))
 
 
 def _render_free_banner() -> None:
@@ -772,9 +773,9 @@ def _render_free_banner() -> None:
         """,
         unsafe_allow_html=True,
     )
-    with st.expander("Get a reminder before kickoff (optional)", expanded=False):
-        st.caption("We'll email you before the tournament starts and around the big "
-                   "matchdays. No spam.")
+    with st.expander(_("Get a reminder before kickoff (optional)"), expanded=False):
+        st.caption(_("We'll email you before the tournament starts and around the big "
+                   "matchdays. No spam."))
         _render_email_signup("free_signup")
 
 
@@ -784,11 +785,11 @@ def _render_free_banner() -> None:
 if WC_ONLY:
     # Only the WC tournament + a national-team match checker. The League/Live
     # tab is hidden so the leagues ML model never loads (keeps us under 512MB).
-    tab_cup, tab_match = st.tabs(["World Cup bracket", "Quick match check"])
+    tab_cup, tab_match = st.tabs([_("World Cup bracket"), _("Quick match check")])
     tab_more = None
 else:
     tab_cup, tab_match, tab_more = st.tabs(
-        ["World Cup bracket", "Quick match check", "More"])
+        [_("World Cup bracket"), _("Quick match check"), _("More")])
 
 
 # ----------------------------------------------------------------------------
@@ -799,7 +800,7 @@ def render_match():
     if len(available_scopes) == 1:
         scope = available_scopes[0]
     else:
-        scope = st.radio("Scope", available_scopes, format_func=str.title,
+        scope = st.radio(_("Scope"), available_scopes, format_func=str.title,
                          horizontal=True, key="match_scope")
     bundle = get_bundle(scope)
     teams = sorted(bundle.teams)
@@ -810,31 +811,31 @@ def render_match():
     default_home = "England" if scope == "internationals" else "Arsenal"
     default_away_name = "France" if scope == "internationals" else "Liverpool"
     c1, c2, c3, c4 = st.columns([3, 3, 2, 2])
-    home = c1.selectbox("Home team", teams,
+    home = c1.selectbox(_("Home team"), teams,
                         index=teams.index(default_home) if default_home in teams else 0,
                         key="m_home", format_func=fmt_team)
     away_options = [t for t in teams if t != home]
     default_away = default_away_name if default_away_name in away_options else away_options[0]
-    away = c2.selectbox("Away team", away_options,
+    away = c2.selectbox(_("Away team"), away_options,
                         index=away_options.index(default_away), key="m_away",
                         format_func=fmt_team)
-    neutral = c3.checkbox("Neutral venue", value=(scope == "internationals"),
+    neutral = c3.checkbox(_("Neutral venue"), value=(scope == "internationals"),
                           key="m_neutral")
-    blend = c4.slider("Ensemble weight", 0.0, 1.0, 1.0, 0.05, key="m_blend",
-                      help="0 = pure Dixon-Coles, 1 = full stacked ensemble.")
+    blend = c4.slider(_("Ensemble weight"), 0.0, 1.0, 1.0, 0.05, key="m_blend",
+                      help=_("0 = pure Dixon-Coles, 1 = full stacked ensemble."))
 
     # Optional: bookmaker odds boost
-    use_odds = st.checkbox("Boost with current bookmaker odds (optional)", key="m_use_odds",
-                           help="When the model has bookmaker odds, RPS drops from ~0.20 to ~0.198 - "
-                                "almost matching the bookmaker baseline.")
+    use_odds = st.checkbox(_("Boost with current bookmaker odds (optional)"), key="m_use_odds",
+                           help=_("When the model has bookmaker odds, RPS drops from ~0.20 to ~0.198 - "
+                                "almost matching the bookmaker baseline."))
     odds_arg = None
     if use_odds:
         oc1, oc2, oc3 = st.columns(3)
-        oh = oc1.number_input("Home odds (decimal)", min_value=1.01, max_value=200.0,
+        oh = oc1.number_input(_("Home odds (decimal)"), min_value=1.01, max_value=200.0,
                               value=2.10, step=0.01, key="m_odds_h")
-        od = oc2.number_input("Draw odds (decimal)", min_value=1.01, max_value=200.0,
+        od = oc2.number_input(_("Draw odds (decimal)"), min_value=1.01, max_value=200.0,
                               value=3.40, step=0.01, key="m_odds_d")
-        oa = oc3.number_input("Away odds (decimal)", min_value=1.01, max_value=200.0,
+        oa = oc3.number_input(_("Away odds (decimal)"), min_value=1.01, max_value=200.0,
                               value=3.50, step=0.01, key="m_odds_a")
         odds_arg = (oh, od, oa)
 
@@ -851,8 +852,8 @@ def render_match():
     home_disp = fmt_team(home)
     away_disp = fmt_team(away)
     if wc_applied:
-        st.caption("Both teams are at the 2026 World Cup, so this blends in the "
-                   "squad-strength prior and matches the tournament view.")
+        st.caption(_("Both teams are at the 2026 World Cup, so this blends in the "
+                   "squad-strength prior and matches the tournament view."))
 
     # Show club crests for leagues scope when logos are available
     if scope == "leagues" and has_logos():
@@ -874,22 +875,22 @@ def render_match():
     hg, ag = pred["most_likely"]
 
     k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric(f"{home_disp} win", f"{pred['outcome']['H']*100:.1f}%")
-    k2.metric("Draw",        f"{pred['outcome']['D']*100:.1f}%")
-    k3.metric(f"{away_disp} win", f"{pred['outcome']['A']*100:.1f}%")
-    k4.metric("Predicted score", f"{hg} - {ag}")
-    k5.metric("Expected goals", f"{pred['lambda_home']:.2f} - {pred['lambda_away']:.2f}")
+    k1.metric(_("{} win").format(home_disp), f"{pred['outcome']['H']*100:.1f}%")
+    k2.metric(_("Draw"),        f"{pred['outcome']['D']*100:.1f}%")
+    k3.metric(_("{} win").format(away_disp), f"{pred['outcome']['A']*100:.1f}%")
+    k4.metric(_("Predicted score"), f"{hg} - {ag}")
+    k5.metric(_("Expected goals"), f"{pred['lambda_home']:.2f} - {pred['lambda_away']:.2f}")
 
     st.divider()
 
     col_bar, col_top = st.columns([1, 1])
     with col_bar:
-        st.subheader("Outcome probabilities")
-        rows = [{"Result": f"{home} win", "Probability": pred["outcome"]["H"], "Model": "Ensemble"},
-                {"Result": "Draw",        "Probability": pred["outcome"]["D"], "Model": "Ensemble"},
-                {"Result": f"{away} win", "Probability": pred["outcome"]["A"], "Model": "Ensemble"}]
+        st.subheader(_("Outcome probabilities"))
+        rows = [{"Result": _("{} win").format(home), "Probability": pred["outcome"]["H"], "Model": "Ensemble"},
+                {"Result": _("Draw"),        "Probability": pred["outcome"]["D"], "Model": "Ensemble"},
+                {"Result": _("{} win").format(away), "Probability": pred["outcome"]["A"], "Model": "Ensemble"}]
         if pred["xgb_outcome"] is not None:
-            for k, v in [("H", f"{home} win"), ("D", "Draw"), ("A", f"{away} win")]:
+            for k, v in [("H", _("{} win").format(home)), ("D", _("Draw")), ("A", _("{} win").format(away))]:
                 rows.append({"Result": v, "Probability": pred["dc_outcome"][k], "Model": "Dixon-Coles"})
                 rows.append({"Result": v, "Probability": pred["xgb_outcome"][k], "Model": "XGBoost"})
         odf = pd.DataFrame(rows)
@@ -899,7 +900,7 @@ def render_match():
         st.plotly_chart(fig, use_container_width=True)
 
     with col_top:
-        st.subheader("Most likely scorelines")
+        st.subheader(_("Most likely scorelines"))
         top_df = pd.DataFrame([
             {"Score": f"{h}-{a}", "p": p, "Probability": f"{p*100:.1f}%"}
             for (h, a, p) in pred["top_scores"]
@@ -910,7 +911,7 @@ def render_match():
                            height=380, showlegend=False, coloraxis_showscale=False)
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.subheader("Full scoreline distribution")
+    st.subheader(_("Full scoreline distribution"))
     sm = pred["score_matrix"]
     n = min(7, sm.shape[0])
     heat = sm[:n, :n]
@@ -920,7 +921,7 @@ def render_match():
         text=[[f"{heat[i, j]*100:.1f}%" for j in range(n)] for i in range(n)],
         texttemplate="%{text}", colorscale="Blues", colorbar=dict(title="%"),
     ))
-    hm.update_layout(xaxis_title=f"{away} goals", yaxis_title=f"{home} goals",
+    hm.update_layout(xaxis_title=_("{} goals").format(away), yaxis_title=_("{} goals").format(home),
                      yaxis_autorange="reversed", height=480)
     st.plotly_chart(hm, use_container_width=True)
 
@@ -941,29 +942,32 @@ def _render_one_league(bundle, league: str, key_prefix: str) -> None:
     """Render the full league simulator for one league. Called per tab."""
     state = current_state_for(league)
     if state is None or not state.teams:
-        st.error(f"No data found for {league}.")
+        st.error(_("No data found for {}.").format(league))
         return
 
     c1, c2 = st.columns([2, 2])
-    continue_season = c1.toggle("Continue from current standings", value=True,
+    continue_season = c1.toggle(_("Continue from current standings"), value=True,
                                 key=f"{key_prefix}_continue",
-                                help="If on, only the remaining fixtures are simulated.")
-    n_sims = c2.number_input("Simulations", min_value=200, max_value=20000, value=3000,
+                                help=_("If on, only the remaining fixtures are simulated."))
+    n_sims = c2.number_input(_("Simulations"), min_value=200, max_value=20000, value=3000,
                              step=500, key=f"{key_prefix}_nsims")
 
     if continue_season:
         played = len(state.played_pairs)
         total = len(state.teams) * (len(state.teams) - 1)
-        st.caption(f"{len(state.teams)} teams. {played}/{total} fixtures played. "
-                   f"Simulating the remaining {total - played}.")
+        st.caption(_("{n} teams. {played}/{total} fixtures played. "
+                   "Simulating the remaining {remaining}.")
+                   .format(n=len(state.teams), played=played, total=total, remaining=total - played))
     else:
-        st.caption(f"{len(state.teams)} teams. Simulating a full "
-                   f"{len(state.teams)*(len(state.teams)-1)} match season from scratch.")
+        n_teams = len(state.teams)
+        st.caption(_("{n} teams. Simulating a full "
+                   "{total} match season from scratch.")
+                   .format(n=n_teams, total=n_teams*(n_teams-1)))
 
     use_logos = has_logos()
 
     if continue_season:
-        with st.expander("Current standings (real)", expanded=False):
+        with st.expander(_("Current standings (real)"), expanded=False):
             cur_rows = []
             for t in sorted(state.teams,
                              key=lambda x: (-state.pts[x],
@@ -980,17 +984,17 @@ def _render_one_league(bundle, league: str, key_prefix: str) -> None:
             cfg = {" ": st.column_config.ImageColumn("", width="small")} if use_logos else None
             st.dataframe(cur, use_container_width=True, column_config=cfg)
 
-    if st.button("Run season simulation", key=f"{key_prefix}_run", type="primary"):
-        with st.spinner(f"Running {n_sims:,} simulations..."):
+    if st.button(_("Run season simulation"), key=f"{key_prefix}_run", type="primary"):
+        with st.spinner(_("Running {n:,} simulations...").format(n=n_sims)):
             result = simulate_league(bundle, state.teams, n_sims=int(n_sims),
                                      start=state if continue_season else None)
-        st.success(f"Done - {n_sims:,} seasons simulated.")
-        st.subheader("Predicted final table")
+        st.success(_("Done - {n:,} seasons simulated.").format(n=n_sims))
+        st.subheader(_("Predicted final table"))
         styled = result.copy()
-        for col in ["Win %", "Top 4 %", "Top 6 %", "Bottom 3 %"]:
+        for col in [_("Win %"), _("Top 4 %"), _("Top 6 %"), _("Bottom 3 %")]:
             styled[col] = styled[col].map(lambda v: f"{v:.1f}%")
-        styled["Expected pts"] = styled["Expected pts"].map(lambda v: f"{v:.1f}")
-        styled["Expected pos"] = styled["Expected pos"].map(lambda v: f"{v:.1f}")
+        styled[_("Expected pts")] = styled["Expected pts"].map(lambda v: f"{v:.1f}")
+        styled[_("Expected pos")] = styled["Expected pos"].map(lambda v: f"{v:.1f}")
         if use_logos:
             styled.insert(0, " ", styled["Team"].map(lambda t: club_logo(t) or ""))
         cfg = {" ": st.column_config.ImageColumn("", width="small")} if use_logos else None
@@ -999,16 +1003,16 @@ def _render_one_league(bundle, league: str, key_prefix: str) -> None:
 
         cA, cB = st.columns(2)
         with cA:
-            st.subheader("Title race")
+            st.subheader(_("Title race"))
             top = result.nlargest(8, "Win %")
-            fig = px.bar(top, x="Team", y="Win %", text=top["Win %"].map(lambda v: f"{v:.1f}%"),
+            fig = px.bar(top, x=_("Team"), y="Win %", text=top["Win %"].map(lambda v: f"{v:.1f}%"),
                          color="Win %", color_continuous_scale="Greens")
             fig.update_layout(height=380, coloraxis_showscale=False)
             st.plotly_chart(fig, use_container_width=True)
         with cB:
-            st.subheader("Relegation candidates")
+            st.subheader(_("Relegation candidates"))
             bot = result.nlargest(8, "Bottom 3 %")
-            fig = px.bar(bot, x="Team", y="Bottom 3 %",
+            fig = px.bar(bot, x=_("Team"), y="Bottom 3 %",
                          text=bot["Bottom 3 %"].map(lambda v: f"{v:.1f}%"),
                          color="Bottom 3 %", color_continuous_scale="Reds")
             fig.update_layout(height=380, coloraxis_showscale=False)
@@ -1017,7 +1021,7 @@ def _render_one_league(bundle, league: str, key_prefix: str) -> None:
 
 def render_league():
     if "leagues" not in available_scopes:
-        st.warning("League model not available. Train it first.")
+        st.warning(_("League model not available. Train it first."))
         return
     bundle = get_bundle("leagues")
 
@@ -1206,9 +1210,9 @@ def _render_group_cards(fixtures: list[dict], standings: list[list[tuple]],
 
     # Legend
     legend_parts = []
-    legend_parts.append('<span style="color:#3b82f6">▌</span> Advances')
+    legend_parts.append(f'<span style="color:#3b82f6">▌</span> {_("Advances")}')
     if fmt.best_thirds > 0:
-        legend_parts.append('<span style="color:#f59e0b">▌</span> Best 3rd-place')
+        legend_parts.append(f'<span style="color:#f59e0b">▌</span> {_("Best 3rd-place")}')
     st.markdown(
         f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:0.2rem">'
         f'{" &nbsp; ".join(legend_parts)}</div>',
@@ -1272,16 +1276,16 @@ def _render_bracket(rounds: list[list[dict]], champion: str | None) -> None:
     if champion:
         st.markdown(
             f'<div class="bracket-champion">'
-            f'<div class="ch-label">🏆 Most-likely path winner</div>'
+            f'<div class="ch-label">{_("🏆 Most-likely path winner")}</div>'
             f'<div class="ch-team">{_team_label(champion)}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
         st.caption(
-            "This bracket follows one path: the favourite's most-likely result in "
+            _("This bracket follows one path: the favourite's most-likely result in "
             "every match. A single path can't show upsets, so the winner here "
             "won't always be the team most likely to lift the trophy overall. "
-            "For true title odds, run the simulation at the bottom of the page."
+            "For true title odds, run the simulation at the bottom of the page.")
         )
 
 
@@ -1302,14 +1306,14 @@ def _render_paywall_teaser():
     # think the purchase failed when they still see the paywall.
     if st.query_params.get("session_id"):
         st.success(
-            "**Thanks for your purchase.** Your unlock link is on its way to your "
+            _("**Thanks for your purchase.** Your unlock link is on its way to your "
             "email and usually arrives within a minute (check spam if it doesn't). "
             "Click the link in that email to open the full tournament, then you can "
-            "close this tab."
+            "close this tab.")
         )
         st.caption(
-            "Still nothing after a few minutes? Email support@wcpicks26.app and "
-            "we'll sort it out."
+            _("Still nothing after a few minutes? Email support@wcpicks26.app and "
+            "we'll sort it out.")
         )
         st.divider()
 
@@ -1398,8 +1402,8 @@ def _render_paywall_teaser():
             unsafe_allow_html=True,
         )
 
-    st.caption("Below: every Matchday 1 fixture. Click any row to open its full "
-               "breakdown. The full tournament unlock is **£7**.")
+    st.caption(_("Below: every Matchday 1 fixture. Click any row to open its full "
+               "breakdown. The full tournament unlock is **£7**."))
 
     # Three featured matches — full match cards
     from src.flags import flag_img_html
@@ -1410,7 +1414,7 @@ def _render_paywall_teaser():
     ]
     featured = [(h, a) for (h, a) in featured_pairs if h in known and a in known]
     if featured:
-        st.markdown("#### Featured Matchday 1 picks")
+        st.markdown(_("#### Featured Matchday 1 picks"))
         cols = st.columns(len(featured))
         for col, (h, a) in zip(cols, featured):
             pred = bundle.predict(h, a, neutral=True)
@@ -1423,7 +1427,7 @@ def _render_paywall_teaser():
                     f"{flag_img_html(a, 16)} <b>{_html.escape(a)}</b>",
                     unsafe_allow_html=True)
                 k1, k2 = st.columns(2)
-                k1.metric("Predicted", f"{hg}–{ag}")
+                k1.metric(_("Predicted"), f"{hg}–{ag}")
                 k2.metric(f"{h[:6]} win", f"{pred['outcome']['H']*100:.0f}%")
                 st.caption(
                     f"D {pred['outcome']['D']*100:.0f}% · "
@@ -1432,9 +1436,9 @@ def _render_paywall_teaser():
                 )
 
     # Full MD1 table — each row links to its full analytics (free for MD1)
-    st.markdown("#### All 24 Matchday 1 fixtures")
-    st.caption("Click the Analyse link on any row to open its full breakdown: "
-               "win probabilities, the likeliest scorelines, and a heatmap.")
+    st.markdown(_("#### All {n} Matchday 1 fixtures").format(n=len(md1)))
+    st.caption(_("Click the Analyse link on any row to open its full breakdown: "
+               "win probabilities, the likeliest scorelines, and a heatmap."))
     rows = []
     for (date, h, a) in md1:
         pred = bundle.predict(h, a, neutral=True)
@@ -1454,7 +1458,7 @@ def _render_paywall_teaser():
         pd.DataFrame(rows), hide_index=True, use_container_width=True,
         column_config={
             "Analyse": st.column_config.LinkColumn(
-                "Analyse", display_text="Analyse", width="small")
+                _("Analyse"), display_text=_("Analyse"), width="small")
         },
     )
 
@@ -1487,8 +1491,8 @@ def _render_paywall_teaser():
     with cols[1]:
         if cta_disabled:
             st.info(
-                "Checkout opens Monday June 1. Bookmark this page so you can "
-                "come back to it."
+                _("Checkout opens Monday June 1. Bookmark this page so you can "
+                "come back to it.")
             )
         else:
             st.markdown(
@@ -1502,15 +1506,15 @@ def _render_paywall_teaser():
                 unsafe_allow_html=True,
             )
         st.caption(
-            "Refunds before kickoff (Jun 11). One-time payment, no subscription. "
-            "Powered by Stripe."
+            _("Refunds before kickoff (Jun 11). One-time payment, no subscription. "
+            "Powered by Stripe.")
         )
 
     # ---- Email capture for people not ready to buy ----
     st.divider()
-    st.markdown("#### Not ready to buy?")
-    st.caption("Get the free Matchday 1 picks emailed to you, plus one reminder "
-               "before the tournament starts.")
+    st.markdown(_("#### Not ready to buy?"))
+    st.caption(_("Get the free Matchday 1 picks emailed to you, plus one reminder "
+               "before the tournament starts."))
     _render_email_signup("teaser_signup")
 
 
@@ -1537,11 +1541,11 @@ def _render_match_detail(home: str, away: str, wc_blend: float = 0.30) -> None:
     known = set(bundle.teams)
     back_url = _home_url()
     if home not in known or away not in known:
-        st.error(f"Unknown match: {home} vs {away}.")
-        st.markdown(f"[← Back to the tournament]({back_url})")
+        st.error(_("Unknown match: {} vs {}.").format(home, away))
+        st.markdown(_("[← Back to the tournament]({url})").format(url=back_url))
         return
 
-    st.markdown(f"[← Back to the tournament]({back_url})")
+    st.markdown(_("[← Back to the tournament]({url})").format(url=back_url))
     pred = bundle.predict(home, away, neutral=True)
     pred = apply_wc_prior_to_prediction(pred, home, away, blend=wc_blend)
     hg, ag, _, _ = best_ev_score(pred)
@@ -1552,20 +1556,20 @@ def _render_match_detail(home: str, away: str, wc_blend: float = 0.30) -> None:
         f"<span style='opacity:0.5;font-weight:500'>vs</span> "
         f"{flag_img_html(away, 26)} {_html.escape(away)}</h2>",
         unsafe_allow_html=True)
-    st.caption("Played at a neutral venue, with the squad-strength prior "
-               "blended in. 2026 World Cup group stage.")
+    st.caption(_("Played at a neutral venue, with the squad-strength prior "
+               "blended in. 2026 World Cup group stage."))
 
     k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric(f"{home} win", f"{pred['outcome']['H']*100:.1f}%")
-    k2.metric("Draw", f"{pred['outcome']['D']*100:.1f}%")
-    k3.metric(f"{away} win", f"{pred['outcome']['A']*100:.1f}%")
-    k4.metric("Smartest score pick", f"{hg} – {ag}")
-    k5.metric("Expected goals", f"{pred['lambda_home']:.2f} – {pred['lambda_away']:.2f}")
+    k1.metric(_("{} win").format(home), f"{pred['outcome']['H']*100:.1f}%")
+    k2.metric(_("Draw"), f"{pred['outcome']['D']*100:.1f}%")
+    k3.metric(_("{} win").format(away), f"{pred['outcome']['A']*100:.1f}%")
+    k4.metric(_("Smartest score pick"), f"{hg} – {ag}")
+    k5.metric(_("Expected goals"), f"{pred['lambda_home']:.2f} – {pred['lambda_away']:.2f}")
 
     st.divider()
     col_bar, col_top = st.columns(2)
     with col_bar:
-        st.subheader("Outcome probabilities")
+        st.subheader(_("Outcome probabilities"))
         ph, pd_, pa = pred["outcome"]["H"], pred["outcome"]["D"], pred["outcome"]["A"]
         bars = [
             ("h", f"{home} win", ph),
@@ -1583,7 +1587,7 @@ def _render_match_detail(home: str, away: str, wc_blend: float = 0.30) -> None:
         st.markdown(f'<div class="prob-wrap">{rows_html}</div>',
                     unsafe_allow_html=True)
     with col_top:
-        st.subheader("Most likely scorelines")
+        st.subheader(_("Most likely scorelines"))
         top_df = pd.DataFrame([
             {"Score": f"{h}-{a}", "p": p, "Probability": f"{p*100:.1f}%"}
             for (h, a, p) in pred["top_scores"]
@@ -1594,7 +1598,7 @@ def _render_match_detail(home: str, away: str, wc_blend: float = 0.30) -> None:
                            height=360, showlegend=False, coloraxis_showscale=False)
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.subheader("Full scoreline distribution")
+    st.subheader(_("Full scoreline distribution"))
     sm = pred["score_matrix"]
     n = min(7, sm.shape[0])
     heat = sm[:n, :n]
@@ -1604,15 +1608,15 @@ def _render_match_detail(home: str, away: str, wc_blend: float = 0.30) -> None:
         text=[[f"{heat[i, j]*100:.1f}%" for j in range(n)] for i in range(n)],
         texttemplate="%{text}", colorscale="Greens", colorbar=dict(title="%"),
     ))
-    hm.update_layout(xaxis_title=f"{away} goals", yaxis_title=f"{home} goals",
+    hm.update_layout(xaxis_title=_("{} goals").format(away), yaxis_title=_("{} goals").format(home),
                      yaxis_autorange="reversed", height=460)
     st.plotly_chart(hm, use_container_width=True)
-    st.markdown(f"[← Back to the tournament]({back_url})")
+    st.markdown(_("[← Back to the tournament]({url})").format(url=back_url))
 
 
 def render_tournament():
     if "internationals" not in available_scopes:
-        st.warning("Internationals model not available.")
+        st.warning(_("Internationals model not available."))
         return
 
     unlocked = _is_unlocked()
@@ -1639,49 +1643,52 @@ def render_tournament():
     all_teams = sorted(bundle.teams)
 
     c1, c2, c3 = st.columns([3, 3, 2])
-    fmt_name = c1.selectbox("Format", list(FORMATS.keys()), key="t_format")
+    fmt_name = c1.selectbox(_("Format"), list(FORMATS.keys()), key="t_format")
     fmt = FORMATS[fmt_name]
 
     # Show "Real" as the default option whenever we have an official draw on file
     has_real = fmt_name in REAL_GROUPS
-    draw_options = (["Real (official draw)", "Snake (balanced)", "Random"]
-                    if has_real else ["Snake (balanced)", "Random"])
-    seed_mode = c2.radio("Group draw", draw_options, horizontal=True, key="t_seed")
-    n_sims = c3.number_input("Simulations", min_value=200, max_value=20000, value=3000,
+    draw_options = ([_("Real (official draw)"), _("Snake (balanced)"), _("Random")]
+                    if has_real else [_("Snake (balanced)"), _("Random")])
+    seed_mode = c2.radio(_("Group draw"), draw_options, horizontal=True, key="t_seed")
+    n_sims = c3.number_input(_("Simulations"), min_value=200, max_value=20000, value=3000,
                              step=500, key="t_nsims")
 
-    st.caption(f"{fmt.n_groups} groups of {fmt.per_group} = {fmt.n_teams} teams. "
-               f"{fmt.advance_per_group} per group{(' + ' + str(fmt.best_thirds) + ' best 3rds') if fmt.best_thirds else ''} advance to "
-               f"{fmt.n_knockout}-team knockout.")
+    st.caption(_("{n_groups} groups of {per_group} = {n_teams} teams. "
+               "{advance} per group{best_thirds} advance to "
+               "{n_ko}-team knockout.")
+               .format(n_groups=fmt.n_groups, per_group=fmt.per_group, n_teams=fmt.n_teams,
+                       advance=fmt.advance_per_group,
+                       best_thirds=(' + ' + str(fmt.best_thirds) + ' ' + _('best 3rds')) if fmt.best_thirds else '',
+                       n_ko=fmt.n_knockout))
 
     # WC 2026 squad-strength prior (only relevant for that tournament)
     wc_blend = 0.0
     if fmt_name == "World Cup 2026 (48 teams)":
         wc_blend = st.slider(
-            "WC 2026 squad-strength prior",
+            _("WC 2026 squad-strength prior"),
             0.0, 0.7, 0.30, 0.05, key="t_wc_blend",
-            help=("Blend the model's historical-form predictions with current squad "
+            help=_("Blend the model's historical-form predictions with current squad "
                   "quality (Transfermarkt market values + bookmaker outright odds). "
                   "0 = pure historical model, 0.3 = balanced (recommended), "
-                  "0.7 = mostly market view. Compensates for the model not knowing "
-                  "current squad / star-player availability."),
+                  "0.7 = mostly market view."),
         )
 
     # Build groups
     if seed_mode.startswith("Real"):
         groups, unknown = resolve_groups(fmt_name, bundle)
         if unknown:
-            st.warning(f"Unrecognised teams (treated as default-strength): {unknown}")
+            st.warning(_("Unrecognised teams (treated as default-strength): {unknown}").format(unknown=unknown))
         teams = [t for g in groups for t in g]
-        st.info(f"Using the actual official draw for **{fmt_name}**.")
+        st.info(_("Using the actual official draw for **{name}**.").format(name=fmt_name))
     else:
         default_teams = top_n_by_elo(bundle, fmt.n_teams)
         teams = st.multiselect(
-            f"Pick {fmt.n_teams} teams (default: top {fmt.n_teams} by Elo)",
+            _("Pick {n} teams (default: top {n} by Elo)").format(n=fmt.n_teams),
             all_teams, default=default_teams, key="t_teams"
         )
         if len(teams) != fmt.n_teams:
-            st.warning(f"Need exactly {fmt.n_teams} teams. Currently {len(teams)}.")
+            st.warning(_("Need exactly {n} teams. Currently {count}.").format(n=fmt.n_teams, count=len(teams)))
             return
         if seed_mode.startswith("Snake"):
             ranked = sorted(teams, key=lambda t: -bundle.elo.rating(t))
@@ -1692,22 +1699,22 @@ def render_tournament():
             rng.shuffle(shuffled)
             groups = [shuffled[i*fmt.per_group:(i+1)*fmt.per_group] for i in range(fmt.n_groups)]
 
-    with st.expander("Group draw preview", expanded=seed_mode.startswith("Real")):
+    with st.expander(_("Group draw preview"), expanded=seed_mode.startswith("Real")):
         cols = st.columns(min(fmt.n_groups, 4))
         for i, g in enumerate(groups):
             col = cols[i % len(cols)]
             with col:
-                st.markdown(f"**Group {chr(ord('A') + i)}**")
-                rows = [{"Team": flagged(t), "Elo": int(bundle.elo.rating(t))} for t in g]
+                st.markdown(_("**Group {}**").format(chr(ord('A') + i)))
+                rows = [{_("Team"): flagged(t), _("Elo"): int(bundle.elo.rating(t))} for t in g]
                 st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
 
     # ---- predicted fixtures ----
-    with st.expander("Predicted fixtures", expanded=False):
+    with st.expander(_("Predicted fixtures"), expanded=False):
         mode = st.radio(
-            "Mode",
-            ["Most-likely outcomes (deterministic)", "Sampled tournament (re-roll for upsets)"],
+            _("Mode"),
+            [_("Most-likely outcomes (deterministic)"), _("Sampled tournament (re-roll for upsets)")],
             horizontal=True, key="t_fix_mode",
-            help=("Most-likely = each fixture's score is the expected-points-maximising pick "
+            help=_("Most-likely = each fixture's score is the expected-points-maximising pick "
                   "under the scoring rules below. Sampled = one random tournament drawn from "
                   "the probability distribution; click Re-roll for a different one."),
         )
@@ -1720,39 +1727,31 @@ def render_tournament():
         # lifts predicted draws from ~1 to ~16 of 20 actual draws. 0.15 caught only 1.
         draw_bonus = 0.35
         if mode.startswith("Most-likely"):
-            with st.expander("Tune scoring (advanced)", expanded=False):
+            with st.expander(_("Tune scoring (advanced)"), expanded=False):
                 st.caption(
-                    "Defaults match the most common prediction contests (3 pts exact, 1 pt result). "
-                    "Adjust if your contest uses different rules."
+                    _("Defaults match the most common prediction contests (3 pts exact, 1 pt result). "
+                    "Adjust if your contest uses different rules.")
                 )
                 sc1, sc2, sc3, sc4 = st.columns(4)
-                exact_pts = sc1.number_input("Exact score pts", min_value=0.0, max_value=20.0,
+                exact_pts = sc1.number_input(_("Exact score pts"), min_value=0.0, max_value=20.0,
                                              value=3.0, step=0.5, key="t_exact_pts")
-                result_pts = sc2.number_input("Correct result pts", min_value=0.0, max_value=10.0,
+                result_pts = sc2.number_input(_("Correct result pts"), min_value=0.0, max_value=10.0,
                                               value=1.0, step=0.5, key="t_result_pts")
-                gd_pts = sc3.number_input("Correct goal-diff bonus", min_value=0.0,
+                gd_pts = sc3.number_input(_("Correct goal-diff bonus"), min_value=0.0,
                                            max_value=10.0, value=0.0, step=0.5, key="t_gd_pts",
-                                           help="Extra points if you got the goal-difference right "
+                                           help=_("Extra points if you got the goal-difference right "
                                                 "(e.g. predicted 2-1 and actual was 3-2). 0 if "
-                                                "your contest doesn't use this.")
-                draw_bonus = sc4.number_input("Draw bias", min_value=0.0, max_value=1.0,
-                                              value=0.35, step=0.05, key="t_draw_bonus",
-                                              help="Pure EV under default scoring picks almost zero "
-                                                   "draws (no WC match has Draw as the most likely "
-                                                   "result). 0.35 is the backtested sweet spot — it "
-                                                   "matches real WC draw frequency (~28%) and "
-                                                   "maximised total points on the 2026 group stage. "
-                                                   "Lower it toward 0 for a pure-favourite bracket; "
-                                                   "raise it past 0.5 to over-predict draws.")
+                                                "your contest doesn't use this."))
+                draw_bonus = sc4.number_input(_("Draw bias"), min_value=0.0, max_value=1.0,
+                                              value=0.35, step=0.05, key="t_draw_bonus")
                 st.caption(
-                    "Picks are EV-optimal across **all** scorelines for these rules. "
+                    _("Picks are EV-optimal across **all** scorelines for these rules. "
                     "If a pick lands in a different result region than the headline H/D/A "
                     "favourite, that's correct: the alternative result's modal scoreline is "
-                    "concentrated enough to outweigh the lost result point. Each alt score is "
-                    "tagged (H/D/A) so you can see which result it implies."
+                    "concentrated enough to outweigh the lost result point.")
                 )
 
-        with st.spinner("Computing fixtures..."):
+        with st.spinner(_("Computing fixtures...")):
             # Detect actual played WC 2026 matches from the latest data
             actual_results = {}
             n_actual = 0
@@ -1766,8 +1765,9 @@ def render_tournament():
                     except Exception:
                         actual_results = {}
                 if n_actual > 0:
-                    st.success(f"✓ {n_actual} WC 2026 match{'es' if n_actual != 1 else ''} "
-                               f"detected with real results - using those instead of predictions.")
+                    st.success(_("✓ {n} WC 2026 match{plural} "
+                               "detected with real results - using those instead of predictions.")
+                               .format(n=n_actual, plural='es' if n_actual != 1 else ''))
             if mode.startswith("Most-likely"):
                 fixtures = predict_group_fixtures(
                     bundle, groups, fmt_name=fmt_name, wc_blend=wc_blend,
@@ -1785,9 +1785,9 @@ def render_tournament():
                 if "sample_seed" not in st.session_state:
                     st.session_state["sample_seed"] = int(_time.time())
                 cols = st.columns([1, 4])
-                if cols[0].button("Re-roll", key="t_reroll", type="primary"):
+                if cols[0].button(_("Re-roll"), key="t_reroll", type="primary"):
                     st.session_state["sample_seed"] = int(_time.time() * 1000) % (2**32)
-                cols[1].caption(f"Sample #{st.session_state['sample_seed']} - click Re-roll for a different tournament")
+                cols[1].caption(_("Sample #{seed} - click Re-roll for a different tournament").format(seed=st.session_state['sample_seed']))
                 fixtures, standings, rounds, champion = sample_one_tournament(
                     bundle, fmt, groups, seed=st.session_state["sample_seed"],
                     fmt_name=fmt_name, wc_blend=wc_blend,
@@ -1795,35 +1795,35 @@ def render_tournament():
                 )
 
         view_by_stage, view_chrono, view_by_group = st.tabs(
-            ["By stage", "Chronological", "By group"]
+            [_("By stage"), _("Chronological"), _("By group")]
         )
 
         # ---- By stage view: one section per tournament stage ----
         with view_by_stage:
             st.caption(
-                "Predictions organised by stage. Group cards show standings + every "
-                "fixture; knockout rounds render as a bracket. Played matches are "
-                "highlighted; everything else is the model's predicted score."
+                _("Predictions organised by stage. Group cards show standings + every "
+                "fixture; knockout rounds render as a bracket.")
             )
 
             # ---- Group stage (visual cards) ----
-            st.markdown("### Group Stage")
+            st.markdown(_("### Group Stage"))
             n_played = sum(1 for f in fixtures if f.get("is_actual"))
             n_total = len(fixtures)
             if n_played > 0:
-                st.caption(f"{n_played} of {n_total} matches played (real results); "
-                           f"{n_total - n_played} predicted.")
+                st.caption(_("{played} of {total} matches played (real results); "
+                           "{remaining} predicted.")
+                           .format(played=n_played, total=n_total, remaining=n_total - n_played))
             else:
-                st.caption(f"All {n_total} matches predicted (tournament hasn't started yet).")
+                st.caption(_("All {total} matches predicted (tournament hasn't started yet).").format(total=n_total))
             _render_group_cards(fixtures, standings, groups, fmt)
 
             # ---- Knockout bracket (visual) ----
             if rounds:
-                st.markdown("### Knockout Bracket")
+                st.markdown(_("### Knockout Bracket"))
                 ko_total = sum(len(r) for r in rounds)
                 ko_played = sum(1 for r in rounds for m in r if m.get("is_actual"))
                 if ko_played > 0:
-                    st.caption(f"{ko_played} of {ko_total} knockout matches played.")
+                    st.caption(_("{} of {} knockout matches played.").format(ko_played, ko_total))
                 _render_bracket(rounds, champion)
 
         # ---- Chronological view (by real date when available, else by matchday) ----
@@ -1944,13 +1944,13 @@ def render_tournament():
                                 "Analyse", display_text="Analyse", width="small")
                         },
                     )
-                    st.caption("Final standings:")
+                    st.caption(_("Final standings:"))
                     srows = [{"Pos": i + 1, "Team": flagged(t), "Pts": s["pts"],
                               "GD": s["gd"], "GF": s["gf"]}
                              for i, (t, s) in enumerate(standings[gi])]
                     st.dataframe(pd.DataFrame(srows), hide_index=True, use_container_width=True)
 
-    if st.button("Run tournament simulation", key="t_run", type="primary"):
+    if st.button(_("Run tournament simulation"), key="t_run", type="primary"):
         # Lock in already-played WC 2026 matches so the title odds reflect how the
         # tournament has actually unfolded, not a from-scratch re-simulation.
         sim_actual = {}
@@ -1961,20 +1961,19 @@ def render_tournament():
                     sim_actual = get_actual_results(pd.read_parquet(intl_path))
                 except Exception:
                     sim_actual = {}
-        with st.spinner(f"Running {n_sims:,} tournament simulations..."):
+        with st.spinner(_("Running {n:,} tournament simulations...").format(n=n_sims)):
             result = simulate_knockout(bundle, fmt, groups, n_sims=int(n_sims),
                                        fmt_name=fmt_name, wc_blend=wc_blend,
                                        actual_results=sim_actual)
-        st.success(f"Done - {n_sims:,} tournaments simulated.")
+        st.success(_("Done - {n:,} tournaments simulated.").format(n=n_sims))
         if sim_actual:
-            st.caption(f"Conditioned on {len(sim_actual)} already-played match"
-                       f"{'es' if len(sim_actual) != 1 else ''} — only remaining "
+            st.caption(_("Conditioned on {n} already-played match"
+                       "{plural} — only remaining "
                        "fixtures are randomised.")
-        st.info("These are the **real title odds** — how often each team won "
-                "across every simulated tournament, upsets included. This is the "
-                "reliable 'who will win' answer, and it can differ from the single "
-                "most-likely bracket above.")
-        st.subheader("Stage advancement probabilities")
+                       .format(n=len(sim_actual), plural='es' if len(sim_actual) != 1 else ''))
+        st.info(_("These are the **real title odds** — how often each team won "
+                "across every simulated tournament, upsets included."))
+        st.subheader(_("Stage advancement probabilities"))
         # Pretty-format every '... %' column
         styled = result.copy()
         for col in [c for c in styled.columns if c.endswith(" %")]:
@@ -1983,7 +1982,7 @@ def render_tournament():
 
         cA, cB = st.columns(2)
         with cA:
-            st.subheader("Title favourites")
+            st.subheader(_("Title favourites"))
             top = result.nlargest(10, "Champion %")
             fig = px.bar(top, x="Team", y="Champion %",
                          text=top["Champion %"].map(lambda v: f"{v:.1f}%"),
@@ -1991,7 +1990,7 @@ def render_tournament():
             fig.update_layout(height=400, coloraxis_showscale=False)
             st.plotly_chart(fig, use_container_width=True)
         with cB:
-            st.subheader("Reach the final")
+            st.subheader(_("Reach the final"))
             if "Final %" in result.columns:
                 top = result.nlargest(10, "Final %")
                 fig = px.bar(top, x="Team", y="Final %",
@@ -2011,64 +2010,65 @@ def render_data():
     try:
         leagues_list = api_client.fetch_leagues(base)
     except Exception as e:
-        st.error(f"Could not list leagues: {e}")
+        st.error(_("Could not list leagues: {e}").format(e=e))
         return
 
     fresh = api_client.fetch_freshness(base)
     if not fresh.get("schedules"):
         st.warning(
-            "Live data cache not yet populated. The daily workflow has to run once "
-            "before this tab has anything to show. Trigger it manually from the "
-            "Actions tab on GitHub, or wait for the next scheduled run (06:30 UTC).")
+            _("Live data cache not yet populated. The daily workflow has to run once "
+            "before this tab has anything to show."))
         return
     st.caption(
-        f"Data refreshed daily by the GitHub Action. "
-        f"Schedules cached: {fresh.get('schedules','-')}  ·  "
-        f"Lineups cached: {fresh.get('lineups','-') or 'not yet'}")
+        _("Data refreshed daily by the GitHub Action. "
+        "Schedules cached: {sched}  ·  "
+        "Lineups cached: {lineups}")
+        .format(sched=fresh.get('schedules','-'),
+                lineups=fresh.get('lineups','-') or _('not yet')))
 
-    league = st.selectbox("League", leagues_list, key="data_league")
+    league = st.selectbox(_("League"), leagues_list, key="data_league")
 
     sub_fix, sub_res, sub_tab, sub_lup, sub_team = st.tabs(
-        ["Upcoming fixtures", "Recent results", "Standings", "Lineups", "Team focus"])
+        [_("Upcoming fixtures"), _("Recent results"), _("Standings"), _("Lineups"), _("Team focus")])
 
     with sub_fix:
-        days = st.slider("Look-ahead (days)", 1, 60, 14, key="data_fix_days")
+        days = st.slider(_("Look-ahead (days)"), 1, 60, 14, key="data_fix_days")
         try:
             rows = api_client.fetch_fixtures(base, league, days=days)
         except Exception as e:
-            st.error(f"Fetch failed: {e}")
+            st.error(_("Fetch failed: {e}").format(e=e))
             rows = []
         if not rows:
-            st.info("No upcoming fixtures in this window.")
+            st.info(_("No upcoming fixtures in this window."))
         else:
             df = pd.DataFrame(rows)[["date", "time", "home", "away", "venue", "week"]]
             st.dataframe(df, use_container_width=True, hide_index=True)
 
     with sub_res:
-        limit = st.slider("How many", 5, 100, 20, key="data_res_limit")
+        limit = st.slider(_("How many"), 5, 100, 20, key="data_res_limit")
         try:
             rows = api_client.fetch_results(base, league, limit=limit)
         except Exception as e:
-            st.error(f"Fetch failed: {e}")
+            st.error(_("Fetch failed: {e}").format(e=e))
             rows = []
         if not rows:
-            st.info("No completed matches found.")
+            st.info(_("No completed matches found."))
         else:
             df = pd.DataFrame(rows)
             df["score"] = df["home_goals"].astype(str) + " - " + df["away_goals"].astype(str)
             st.dataframe(
                 df[["date", "home", "score", "away", "game_id"]],
                 use_container_width=True, hide_index=True)
-            st.caption("Copy a game_id and paste into the Lineups tab to see the starting XI.")
+            st.caption(_("Copy a game_id and paste into the Lineups tab to see the starting XI."))
 
     with sub_tab:
         try:
             rows = api_client.fetch_standings(base, league)
         except Exception as e:
-            st.error(f"Fetch failed: {e}")
+            st.error(_("Fetch failed: {e}").format(e=e))
             rows = []
         if not rows:
-            st.info("No standings yet (season hasn't started or no completed matches).")
+            st.info(_("No standings yet (season hasn't started or no completed matches)."))
         else:
             df = pd.DataFrame(rows)[
                 ["rank", "team", "played", "wins", "draws", "losses",
@@ -2080,30 +2080,30 @@ def render_data():
         try:
             league_teams = api_client.fetch_league_teams(base, league)
         except Exception as e:
-            st.error(f"Could not list teams: {e}")
+            st.error(_("Could not list teams: {e}").format(e=e))
             league_teams = []
         if not league_teams:
-            st.info("No teams available for this league yet.")
+            st.info(_("No teams available for this league yet."))
         else:
-            team = st.selectbox("Team", league_teams, key="data_team_pick")
+            team = st.selectbox(_("Team"), league_teams, key="data_team_pick")
             tc1, tc2 = st.columns([2, 1])
-            n_form = tc1.slider("Form window (matches)", 3, 20, 10, key="data_team_form_n")
-            n_lup = tc2.slider("Lineups to base prediction on", 3, 10, 5, key="data_team_lup_n")
+            n_form = tc1.slider(_("Form window (matches)"), 3, 20, 10, key="data_team_form_n")
+            n_lup = tc2.slider(_("Lineups to base prediction on"), 3, 10, 5, key="data_team_lup_n")
 
             # Form
             try:
                 form = api_client.fetch_team_form(base, team, league, n=n_form)
             except Exception as e:
-                st.error(f"Form fetch failed: {e}")
+                st.error(_("Form fetch failed: {e}").format(e=e))
                 form = None
             if form:
                 s = form["summary"]
                 k1, k2, k3, k4, k5 = st.columns(5)
-                k1.metric("Last " + str(s["played"]) + " played", s["played"])
+                k1.metric(_("Last {} played").format(s["played"]), s["played"])
                 k2.metric("W-D-L", f"{s['wins']}-{s['draws']}-{s['losses']}")
                 k3.metric("GF-GA", f"{s['goals_for']}-{s['goals_against']}")
-                k4.metric("Goal diff", s["goal_diff"])
-                k5.metric("Form (oldest→newest)", s["form"] or "—")
+                k4.metric(_("Goal diff"), s["goal_diff"])
+                k5.metric(_("Form (oldest→newest)"), s["form"] or "—")
                 if form["matches"]:
                     df = pd.DataFrame(form["matches"])
                     df["score"] = df["team_goals"].astype(str) + "-" + df["opponent_goals"].astype(str)
@@ -2115,11 +2115,12 @@ def render_data():
             try:
                 pxi = api_client.fetch_predicted_xi(base, team, league, lookback=n_lup)
             except Exception as e:
-                st.error(f"Predicted XI fetch failed: {e}")
+                st.error(_("Predicted XI fetch failed: {e}").format(e=e))
                 pxi = None
             if pxi and pxi.get("predicted_xi"):
-                st.markdown(f"### Predicted starting XI · {pxi['formation']} · "
-                            f"confidence: {pxi['confidence']}")
+                st.markdown(_("### Predicted starting XI · {formation} · "
+                            "confidence: {confidence}")
+                            .format(formation=pxi['formation'], confidence=pxi['confidence']))
                 st.caption(pxi["method"])
                 buckets: dict[str, list] = {"GK": [], "DEF": [], "MID": [], "FW": []}
                 for p in pxi["predicted_xi"]:
@@ -2134,15 +2135,16 @@ def render_data():
                             unsafe_allow_html=True)
 
             # Last N actual lineups (collapsed)
-            with st.expander("Show recent actual starting XIs"):
+            with st.expander(_("Show recent actual starting XIs")):
                 try:
                     lups = api_client.fetch_team_lineups(base, team, league, n=n_lup)
                 except Exception as e:
-                    st.error(f"Lineups fetch failed: {e}")
+                    st.error(_("Lineups fetch failed: {e}").format(e=e))
                     lups = None
                 if lups and lups.get("lineups"):
                     for m in lups["lineups"]:
-                        st.markdown(f"**{m['date']} · vs {m['opponent']} ({m['venue']})**")
+                        st.markdown(_("**{date} · vs {opponent} ({venue})**")
+                                   .format(date=m['date'], opponent=m['opponent'], venue=m['venue']))
                         df = pd.DataFrame(m["starting"])
                         if not df.empty:
                             st.dataframe(
@@ -2150,8 +2152,8 @@ def render_data():
                                 use_container_width=True, hide_index=True)
 
     with sub_lup:
-        st.caption("FBref publishes lineups post-match. Pre-match XIs are not available here.")
-        gid = st.text_input("game_id (from Recent results)", key="data_lup_gid")
+        st.caption(_("FBref publishes lineups post-match. Pre-match XIs are not available here."))
+        gid = st.text_input(_("game_id (from Recent results)"), key="data_lup_gid")
         if gid:
             try:
                 data = api_client.fetch_lineup(base, gid.strip(), league)
@@ -2188,8 +2190,8 @@ def _safe_render(fn) -> None:
     try:
         fn()
     except Exception:
-        st.error("Something went wrong loading this section. Please refresh the "
-                 "page. If it keeps happening, email support@wcpicks26.app.")
+        st.error(_("Something went wrong loading this section. Please refresh the "
+                 "page. If it keeps happening, email support@wcpicks26.app."))
         import traceback as _tb
         print(_tb.format_exc())   # still logged server-side for debugging
 
@@ -2201,7 +2203,7 @@ with tab_match:
 
 if tab_more is not None:
     with tab_more:
-        sub_league, sub_data = st.tabs(["League season", "Live data"])
+        sub_league, sub_data = st.tabs([_("League season"), _("Live data")])
         with sub_league:
             _safe_render(render_league)
         with sub_data:
