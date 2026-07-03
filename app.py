@@ -57,8 +57,11 @@ _CUSTOM_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
 html, body, [class*="css"], .stApp, .stMarkdown, p, label, div {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif !important;
 }
+
+/* Ensure flag emoji render properly on Windows */
+.flag-emoji { font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; }
 
 .stApp {
     background: radial-gradient(ellipse at top, #16203a 0%, #11151c 55%) !important;
