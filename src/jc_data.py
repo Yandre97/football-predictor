@@ -105,6 +105,33 @@ def extract_hhad_odds(match: dict) -> dict | None:
     }
 
 
+def calibrate_draw(outcome: dict[str, float], draw_bias: float = 0.20) -> dict[str, float]:
+    """平局校准：模型系统性低估平局概率，手动校正。
+
+    Args:
+        outcome: 原始 {'H': p, 'D': p, 'A': p}
+        draw_bias: 平局概率提升幅度（0~0.3，默认 0.20）
+                  世界杯历史平局率约 27%，模型接近 0%
+
+    Returns:
+        校准后的 {'H': p, 'D': p, 'A': p}
+    """
+    if draw_bias <= 0:
+        return outcome
+    h, d, a = outcome["H"], outcome["D"], outcome["A"]
+    new_d = d + draw_bias
+    # H 和 A 按比例缩放到剩下概率空间
+    remaining = h + a
+    if remaining > 0:
+        scale = (1 - new_d) / remaining
+        new_h = h * scale
+        new_a = a * scale
+    else:
+        new_h = (1 - new_d) * 0.5
+        new_a = (1 - new_d) * 0.5
+    return {"H": new_h, "D": new_d, "A": new_a}
+
+
 def compare_odds(model_pred: dict, jc_odds: dict | None) -> dict:
     """对比模型预测概率 vs 竞彩赔率去水概率，计算价值差。
 

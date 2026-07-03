@@ -93,55 +93,22 @@ def _render_match_card(match: dict, idx: int) -> None:
         # LLM 解读
         llm_result = match.get("llm")
         if llm_result:
-            with st.expander("🤖 投注建议", expanded=True):
+            with st.expander("💡 投注建议", expanded=True):
+                direction = llm_result.get("方向建议", "-")
                 confidence = llm_result.get("信心评级", "-")
-                conf_colors = {"高": "🟢", "中": "🟡", "低": "🔴"}
-                st.markdown(f"**{conf_colors.get(confidence, '⚪')} 信心评级：{confidence}**")
-                if llm_result.get("总分析"):
-                    st.caption(llm_result["总分析"])
+                reason = llm_result.get("依据", "")
+                risk = llm_result.get("风险提示", "")
 
-                # 胜平负
-                spf = llm_result.get("胜平负", {})
-                if spf:
-                    rec = spf.get("推荐", "-")
-                    odds_val = spf.get("sp")
-                    reason = spf.get("理由", "")
-                    label = f"**胜平负**：{rec}"
-                    if odds_val:
-                        label += f"（SP {odds_val}）"
-                    st.markdown(label)
-                    if reason:
-                        st.caption(reason)
-
-                # 让球胜平负
-                hhad = llm_result.get("让球胜平负", {})
-                if hhad:
-                    rec = hhad.get("推荐", "-")
-                    gl = hhad.get("让球数", "")
-                    odds_val = hhad.get("sp", "")
-                    reason = hhad.get("理由", "")
-                    label = f"**让球胜平负**：{rec}"
-                    if gl:
-                        label += f"（让{gl}球"
-                        if odds_val:
-                            label += f" SP {odds_val}"
-                        label += "）"
-                    st.markdown(label)
-                    if reason:
-                        st.caption(reason)
-
-                # 总进球
-                goals = llm_result.get("总进球", {})
-                if goals:
-                    rec = goals.get("推荐", "-")
-                    reason = goals.get("理由", "")
-                    st.markdown(f"**总进球**：{rec}")
-                    if reason:
-                        st.caption(reason)
-
-                # 比分参考（无赔率版）
-                if llm_result.get("比分参考"):
-                    st.markdown(f"**比分参考**：{llm_result['比分参考']}")
+                conf_color = {"高": "#00c853", "中": "#ff9100", "低": "#ff5252"}.get(confidence, "#94a3b8")
+                st.markdown(
+                    f"<span style='font-size:1.1rem;font-weight:700'>方向：{direction}</span>"
+                    f"<span style='margin-left:1rem;color:{conf_color};font-weight:600'>信心 {confidence}</span>",
+                    unsafe_allow_html=True,
+                )
+                if reason:
+                    st.markdown(f"**依据**：{reason}")
+                if risk:
+                    st.markdown(f"**风险提示**：{risk}")
 
 
 def render_jc_prediction() -> None:

@@ -26,6 +26,7 @@ def predict_jc_matches(
     date: str | None = None,
     api_key: str | None = None,
     enable_llm: bool = True,
+    draw_bias: float = 0.20,
 ) -> list[dict[str, Any]]:
     """获取竞彩赛程并逐场预测。
 
@@ -119,9 +120,19 @@ def predict_jc_matches(
         match_info["scope"] = scope
         match_info["odds_boosted"] = odds_tuple is not None
 
+        # 伤停信息
+        injuries_text = ""
+        try:
+            from src.injury_data import fetch_league_injuries_sync, format_injuries, get_espn_slug
+            espn_slug = get_espn_slug(league_cn)
+            if espn_slug:
+                inj = fetch_league_injuries_sync(espn_slug)
+                if inj:
+                    injuries_text = format_injuries(inj)
+        except Exception:
+            pass
+
         # LLM 解读
-        hhad = match_info.get("jc_hhad")
-        handicap_info = f"让球{hhad['goal_line']}球  主胜{hhad['home_odds']} / 平{hhad['draw_odds']} / 客胜{hhad['away_odds']}" if hhad else "无"
         if enable_llm and key:
             match_info["llm"] = interpret_match(
                 home=home_en,
@@ -130,8 +141,8 @@ def predict_jc_matches(
                 match_time=match_info["match_time"],
                 model_pred=pred_boosted,
                 analysis=analysis,
-                injuries_text="",
-                handicap_info=handicap_info,
+                injuries_text=injuries_text,
+                handicap_info=match_info.get("jc_hhad"),
                 api_key=api_key,
             )
 

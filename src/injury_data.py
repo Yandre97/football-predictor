@@ -31,6 +31,27 @@ JC_LEAGUE_TO_ESPN: dict[str, str] = {
 }
 
 
+def fetch_league_injuries_sync(
+    espn_slug: str, team_id: str | None = None
+) -> list[dict[str, Any]]:
+    """同步版：获取指定联赛的伤停报告。"""
+    params: dict[str, Any] = {"limit": 50}
+    if team_id:
+        params["team"] = team_id
+    try:
+        resp = httpx.get(
+            f"{ESPN_BASE}/{espn_slug}/injuries",
+            params=params,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        # Injuries can be under 'injuries' or 'events' depending on sport
+        return data.get("injuries", []) or data.get("events", [])
+    except Exception:
+        return []
+
+
 async def fetch_league_injuries(
     espn_slug: str, team_id: str | None = None
 ) -> list[dict[str, Any]]:
