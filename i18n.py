@@ -339,6 +339,7 @@ _TRANSLATIONS: dict[str, str] = {
     "Free for the 2026 World Cup.": "2026 世界杯免费开放。",
     "Every match, the full knockout bracket, and the simulator, no payment needed.": "所有比赛、完整淘汰赛对阵图和模拟器，无需付费。",
     "Like it? Support the project": "喜欢？支持项目",
+}
 
 # Translations that are HTML-heavy or non-trivial to key-match — handled
 # as raw function replacements in app.py
