@@ -26,12 +26,8 @@ from src.tournament import (
 )
 from src.unlock import verify_token
 import app_api_client as api_client
-from i18n import _, team_cn
-from src.flags import flag as _flag_src
-def _flag_cn(t: str) -> str:
-    """Flag emoji + Chinese team name for display. Falls back to English."""
-    f = _flag_src(t)
-    return f"{f} {team_cn(t)}" if f else team_cn(t)
+from i18n import _
+from src.flags import flagged
 
 _FAVICON = ROOT / "assets" / "favicon.png"
 st.set_page_config(page_title="WC2026 Picks", layout="wide",
@@ -814,8 +810,7 @@ def render_match():
     teams = sorted(bundle.teams)
 
     # Format team names with flag emojis (for internationals; clubs unchanged)
-    from src.flags import flag as _flag
-    fmt_team = (lambda t: f"{_flag(t)} {team_cn(t)}" if _flag(t) else team_cn(t)) if scope == "internationals" else (lambda t: t)
+    fmt_team = (lambda t: flagged(t)) if scope == "internationals" else (lambda t: t)
     # Sensible defaults per scope so the page opens on a recognisable matchup.
     default_home = "England" if scope == "internationals" else "Arsenal"
     default_away_name = "France" if scope == "internationals" else "Liverpool"
@@ -1455,9 +1450,9 @@ def _render_paywall_teaser():
         hg, ag, _, _ = best_ev_score(pred)
         rows.append({
             "Date":   pd.Timestamp(date).strftime("%d %b"),
-            "Home":   _flag_cn(h),
+            "Home":   flagged(h),
             "Pick":   f"{hg}–{ag}",
-            "Away":   _flag_cn(a),
+            "Away":   flagged(a),
             "H %":    f"{pred['outcome']['H']*100:.0f}%",
             "D %":    f"{pred['outcome']['D']*100:.0f}%",
             "A %":    f"{pred['outcome']['A']*100:.0f}%",
@@ -1714,7 +1709,7 @@ def render_tournament():
             col = cols[i % len(cols)]
             with col:
                 st.markdown(_("**Group {}**").format(chr(ord('A') + i)))
-                rows = [{_("Team"): _flag_cn(t), _("Elo"): int(bundle.elo.rating(t))} for t in g]
+                rows = [{_("Team"): flagged(t), _("Elo"): int(bundle.elo.rating(t))} for t in g]
                 st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
 
     # ---- predicted fixtures ----
@@ -1854,9 +1849,9 @@ def render_tournament():
                             score_text += f" ({f['score_prob']*100:.0f}%)"
                         row = {
                             "Group":  chr(ord('A') + f["group_idx"]),
-                            "Home":   _flag_cn(f["home"]),
+                            "Home":   flagged(f["home"]),
                             "Score":  score_text,
-                            "Away":   _flag_cn(f["away"]),
+                            "Away":   flagged(f["away"]),
                         }
                         if "p_home" in f:
                             row["H %"] = f"{f['p_home']*100:.0f}%"
@@ -1880,9 +1875,9 @@ def render_tournament():
                     for f in md_fixtures:
                         row = {
                             "Group":  chr(ord('A') + f["group_idx"]),
-                            "Home":   _flag_cn(f["home"]),
+                            "Home":   flagged(f["home"]),
                             "Score":  f"{f['score'][0]}–{f['score'][1]}",
-                            "Away":   _flag_cn(f["away"]),
+                            "Away":   flagged(f["away"]),
                         }
                         if "p_home" in f:
                             row["H %"] = f"{f['p_home']*100:.0f}%"
@@ -1903,10 +1898,10 @@ def render_tournament():
                     if m.get("pens"):
                         score_text += f" → {m['winner']} (ET/pens)"
                     row = {
-                        "Home":   _flag_cn(m["home"]),
+                        "Home":   flagged(m["home"]),
                         "Score":  score_text,
-                        "Away":   _flag_cn(m["away"]),
-                        "Win":    _flag_cn(m["winner"]),
+                        "Away":   flagged(m["away"]),
+                        "Win":    flagged(m["winner"]),
                     }
                     if "p_home" in m:
                         row["H %"] = f"{m['p_home']*100:.0f}%"
@@ -1933,9 +1928,9 @@ def render_tournament():
                         if "score_prob" in f and f["score_prob"]:
                             score_text += f" ({f['score_prob']*100:.0f}%)"
                         row.update({
-                            "Home":   _flag_cn(f["home"]),
+                            "Home":   flagged(f["home"]),
                             "Score":  score_text,
-                            "Away":   _flag_cn(f["away"]),
+                            "Away":   flagged(f["away"]),
                         })
                         if "p_home" in f:
                             row["H %"] = f"{f['p_home']*100:.0f}%"
@@ -1954,7 +1949,7 @@ def render_tournament():
                         },
                     )
                     st.caption(_("Final standings:"))
-                    srows = [{"Pos": i + 1, "Team": _flag_cn(t), "Pts": s["pts"],
+                    srows = [{"Pos": i + 1, "Team": flagged(t), "Pts": s["pts"],
                               "GD": s["gd"], "GF": s["gf"]}
                              for i, (t, s) in enumerate(standings[gi])]
                     st.dataframe(pd.DataFrame(srows), hide_index=True, use_container_width=True)
