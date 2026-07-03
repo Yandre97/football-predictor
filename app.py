@@ -504,17 +504,8 @@ _HERO_HTML = """
   </div>
 </div>
 """
-st.markdown(_HERO_HTML.format(
-    title=_("WC2026 Picks title"),
-    subtitle=_("Free predictions for your <strong style=\"color:#f59e0b\">2026 World Cup office pool</strong>. "
-               "For every match it gives the score most likely to win "
-               "you points, set to whatever rules your contest uses. Built on a calibrated "
-               "statistical model (Dixon-Coles, Pi-rating, machine learning). The whole "
-               "tournament is free to use this World Cup."),
-    pill_calibrated=_("Calibrated model"),
-    pill_accuracy=_("Bookmaker-level accuracy"),
-    pill_free=_("Free this World Cup"),
-), unsafe_allow_html=True)
+# Hero section removed — takes space, no real value.
+# st.markdown(_HERO_HTML.format(...))
 
 # ============================================================================
 # Sidebar (shared across tabs)
@@ -768,29 +759,8 @@ def _render_email_signup(key_prefix: str) -> None:
 
 
 def _render_free_banner() -> None:
-    """Top-of-tournament banner shown in FREE_MODE: says it's free, captures
-    emails for reminders, and offers an optional support link."""
-    support = _stripe_payment_link()
-    support_html = ""
-    if support and support != "#":
-        support_html = (
-            f' &nbsp;·&nbsp; <a href="{support}" target="_blank" '
-            f'style="color:#f59e0b; text-decoration:none;">{_("Like it? Support the project")}</a>')
-    st.markdown(
-        f"""
-        <div style="background:linear-gradient(135deg,#11224a 0%,#1a2030 100%);
-                    border:1px solid rgba(245,158,11,0.35); border-radius:14px;
-                    padding:0.9rem 1.2rem; margin-bottom:1rem; text-align:center;">
-          <span style="color:#f59e0b; font-weight:700;">{_("Free for the 2026 World Cup.")}</span>
-          <span style="color:#cbd5e1;"> {_("Every match, the full knockout bracket, and the simulator, no payment needed.")}</span>{support_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    with st.expander(_("Get a reminder before kickoff (optional)"), expanded=False):
-        st.caption(_("We'll email you before the tournament starts and around the big "
-                   "matchdays. No spam."))
-        _render_email_signup("free_signup")
+    """Free banner — no longer shown."""
+    pass
 
 
 # ============================================================================
